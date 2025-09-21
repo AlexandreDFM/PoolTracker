@@ -181,8 +181,8 @@ jobs:
               run: |
                   echo "Deploying application with image: ${{ needs.build.outputs.image_tag }}"
 
-                  # Update deployment with new image
-                  sed -i "s|ghcr.io/itskarmaoff/pool-tracker:latest|${{ needs.build.outputs.image_tag }}|g" deploy/kubernetes/production/deployment.yaml
+                  # Update deployment with new image (using # as delimiter to avoid conflicts with / in URLs)
+                  sed -i "s#ghcr.io/itskarmaoff/pool-tracker:latest#${{ needs.build.outputs.image_tag }}#g" deploy/kubernetes/production/deployment.yaml
 
                   # Apply manifests
                   kubectl apply -f deploy/kubernetes/production/deployment.yaml
