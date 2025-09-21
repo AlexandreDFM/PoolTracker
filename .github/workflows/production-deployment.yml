@@ -181,12 +181,23 @@ jobs:
               run: |
                   echo "Deploying application with image: ${{ needs.build.outputs.image_tag }}"
 
-                  # Update deployment with new image (using # as delimiter to avoid conflicts with / in URLs)
-                  sed -i "s#ghcr.io/itskarmaoff/pool-tracker:latest#${{ needs.build.outputs.image_tag }}#g" deploy/kubernetes/production/deployment.yaml
+                  # Create a temporary deployment file with the correct image
+                  IMAGE_TAG="${{ needs.build.outputs.image_tag }}"
+                  cp deploy/kubernetes/production/deployment.yaml deploy/kubernetes/production/deployment-temp.yaml
+
+                  # Use a more robust replacement method
+                  sed -i.bak "s|ghcr\.io/alexandredfm/pool-tracker:latest|${IMAGE_TAG}|g" deploy/kubernetes/production/deployment-temp.yaml
+
+                  # Verify the replacement worked
+                  echo "Updated deployment file:"
+                  grep "image:" deploy/kubernetes/production/deployment-temp.yaml || echo "No image line found"
 
                   # Apply manifests
-                  kubectl apply -f deploy/kubernetes/production/deployment.yaml
+                  kubectl apply -f deploy/kubernetes/production/deployment-temp.yaml
                   kubectl apply -f deploy/kubernetes/production/service.yaml
+
+                  # Clean up temporary file
+                  rm -f deploy/kubernetes/production/deployment-temp.yaml deploy/kubernetes/production/deployment-temp.yaml.bak
 
             - name: Wait for Application Deployment
               run: |
