@@ -1,0 +1,291 @@
+name: Complete Production Deployment Pipeline
+
+env:
+    # GitHub Configuration
+    GITHUB_USERNAME: ${{ github.repository_owner }}
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # Kubernetes Configuration
+    KUBERNETES_URL: ${{ secrets.KUBERNETES_URL }}
+    KUBERNETES_SECRET: ${{ secrets.KUBERNETES_SECRET }}
+
+    # Container Registry
+    REGISTRY: ghcr.io
+    IMAGE_NAME: ${{ github.repository_owner }}/pool-tracker
+
+    # Production Database Secrets
+    DB_USER: ${{ secrets.DB_USER }}
+    DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+    DB_NAME: ${{ secrets.DB_NAME }}
+    JWT_SECRET: ${{ secrets.JWT_SECRET }}
+    SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+    MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+
+on:
+    push:
+        branches:
+            - main
+            - feature/deploy-prod
+        tags:
+            - 'v*.*.*'
+
+    # Manual trigger
+    workflow_dispatch:
+        inputs:
+            environment:
+                description: 'Environment to deploy to'
+                required: true
+                default: 'production'
+                type: choice
+                options:
+                    - production
+                    - staging
+            force_redeploy:
+                description: 'Force complete redeployment'
+                type: boolean
+                default: false
+
+jobs:
+    # Build and push Docker image
+    build:
+        name: Build & Push Docker Image
+        runs-on: ubuntu-latest
+        outputs:
+            image_tag: ${{ steps.meta.outputs.tags }}
+            image_digest: ${{ steps.build.outputs.digest }}
+            image_version: ${{ steps.meta.outputs.version }}
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+
+            - name: Set up QEMU
+              uses: docker/setup-qemu-action@v3
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+
+            - name: Log in to Container Registry
+              uses: docker/login-action@v3
+              with:
+                  registry: ${{ env.REGISTRY }}
+                  username: ${{ env.GITHUB_USERNAME }}
+                  password: ${{ env.GITHUB_TOKEN }}
+
+            - name: Extract metadata
+              id: meta
+              uses: docker/metadata-action@v5
+              with:
+                  images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+                  tags: |
+                      type=ref,event=branch
+                      type=ref,event=pr
+                      type=semver,pattern={{version}}
+                      type=semver,pattern={{major}}.{{minor}}
+                      type=semver,pattern={{major}}
+                      type=sha,prefix={{branch}}-
+                      type=raw,value=latest,enable={{is_default_branch}}
+
+            - name: Build and push Docker image
+              id: build
+              uses: docker/build-push-action@v5
+              with:
+                  context: .
+                  platforms: linux/amd64,linux/arm64
+                  push: true
+                  tags: ${{ steps.meta.outputs.tags }}
+                  labels: ${{ steps.meta.outputs.labels }}
+                  cache-from: type=gha
+                  cache-to: type=gha,mode=max
+                  build-args: |
+                      NODE_ENV=production
+
+            - name: Generate SBOM
+              uses: anchore/sbom-action@v0
+              with:
+                  image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+
+    # Deploy to Kubernetes
+    deploy:
+        name: Deploy to Production Kubernetes
+        runs-on: ubuntu-latest
+        needs: build
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/deploy-prod' || startsWith(github.ref, 'refs/tags/v')
+        environment:
+            name: production
+            url: https://pool-tracker.alexandredfm.fr
+        concurrency:
+            group: production-deployment
+            cancel-in-progress: false
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+
+            - name: Set up Kubernetes context
+              uses: azure/k8s-set-context@v4
+              with:
+                  method: service-account
+                  k8s-url: ${{ env.KUBERNETES_URL }}
+                  k8s-secret: ${{ env.KUBERNETES_SECRET }}
+
+            - name: Verify Kubernetes connectivity
+              run: |
+                  echo "Testing Kubernetes connectivity..."
+                  kubectl cluster-info
+                  kubectl get nodes
+
+            - name: Create/Update Namespace
+              run: |
+                  echo "Setting up namespace..."
+                  kubectl apply -f deploy/kubernetes/namespaces.yaml
+
+            - name: Create Production Secrets
+              run: |
+                  echo "Creating production secrets..."
+
+                  # Delete existing secrets if they exist
+                  kubectl delete secret pool-tracker-secret-prod -n pool-tracker-prod --ignore-not-found=true
+                  kubectl delete secret github-container-registry -n pool-tracker-prod --ignore-not-found=true
+
+                  # Create application secrets
+                  kubectl create secret generic pool-tracker-secret-prod -n pool-tracker-prod \
+                      --from-literal=DB_USER="${{ env.DB_USER }}" \
+                      --from-literal=DB_PASSWORD="${{ env.DB_PASSWORD }}" \
+                      --from-literal=JWT_SECRET="${{ env.JWT_SECRET }}" \
+                      --from-literal=SESSION_SECRET="${{ env.SESSION_SECRET }}"
+
+                  # Create GitHub Container Registry secret
+                  kubectl create secret docker-registry github-container-registry -n pool-tracker-prod \
+                      --docker-server=${{ env.REGISTRY }} \
+                      --docker-username=${{ env.GITHUB_USERNAME }} \
+                      --docker-password=${{ env.GITHUB_TOKEN }} \
+                      --docker-email=${{ github.actor }}@users.noreply.github.com
+
+            - name: Apply ConfigMap
+              run: |
+                  echo "Applying configuration..."
+                  kubectl apply -f deploy/kubernetes/production/configmap.yaml
+
+            - name: Deploy Database
+              run: |
+                  echo "Deploying database..."
+
+                  # Check if database exists
+                  if ! kubectl get deployment pool-tracker-db-deployment-prod -n pool-tracker-prod >/dev/null 2>&1; then
+                      echo "Deploying new database..."
+                      kubectl apply -f deploy/kubernetes/production/database.yaml
+
+                      # Wait for database to be ready
+                      echo "Waiting for database to be ready..."
+                      kubectl wait --for=condition=available --timeout=300s deployment/pool-tracker-db-deployment-prod -n pool-tracker-prod
+                      kubectl wait --for=condition=ready --timeout=300s pod -l app=mysql -n pool-tracker-prod
+                  else
+                      echo "Database already exists, checking health..."
+                      kubectl get pods -l app=mysql -n pool-tracker-prod
+                  fi
+
+            - name: Deploy Application
+              run: |
+                  echo "Deploying application with image: ${{ needs.build.outputs.image_tag }}"
+
+                  # Update deployment with new image
+                  sed -i "s|ghcr.io/itskarmaoff/pool-tracker:latest|${{ needs.build.outputs.image_tag }}|g" deploy/kubernetes/production/deployment.yaml
+
+                  # Apply manifests
+                  kubectl apply -f deploy/kubernetes/production/deployment.yaml
+                  kubectl apply -f deploy/kubernetes/production/service.yaml
+
+            - name: Wait for Application Deployment
+              run: |
+                  echo "Waiting for application to be ready..."
+
+                  # Wait for deployment rollout
+                  kubectl rollout status deployment/pool-tracker-deployment-prod -n pool-tracker-prod --timeout=600s
+
+                  # Wait for pods to be ready
+                  kubectl wait --for=condition=ready --timeout=300s pod -l app=pool-tracker -n pool-tracker-prod
+
+            - name: Apply Ingress Configuration
+              run: |
+                  echo "Configuring ingress..."
+                  kubectl apply -f deploy/kubernetes/production/ingress.yaml
+
+            - name: Verify Deployment
+              run: |
+                  echo "=== Deployment Verification ==="
+                  echo "Namespace status:"
+                  kubectl get all -n pool-tracker-prod
+                  echo ""
+                  echo "Pod details:"
+                  kubectl get pods -n pool-tracker-prod -o wide
+                  echo ""
+                  echo "Service endpoints:"
+                  kubectl get endpoints -n pool-tracker-prod
+                  echo ""
+                  echo "Ingress status:"
+                  kubectl get ingress -n pool-tracker-prod -o wide
+                  echo ""
+                  echo "Recent events:"
+                  kubectl get events -n pool-tracker-prod --sort-by=.metadata.creationTimestamp --field-selector type!=Normal | tail -10
+
+            - name: Health Check
+              run: |
+                  echo "Running health checks..."
+
+                  # Get service IP for internal health check
+                  SERVICE_IP=$(kubectl get service pool-tracker-service-prod -n pool-tracker-prod -o jsonpath='{.spec.clusterIP}')
+                  echo "Service IP: $SERVICE_IP"
+
+                  # Port forward for testing
+                  kubectl port-forward service/pool-tracker-service-prod 8080:80 -n pool-tracker-prod &
+                  PF_PID=$!
+
+                  # Wait for port forward to be ready
+                  sleep 10
+
+                  # Test health endpoint
+                  if curl -f -s http://localhost:8080/ >/dev/null; then
+                      echo "✅ Health check passed"
+                  else
+                      echo "❌ Health check failed"
+                      kubectl logs -l app=pool-tracker -n pool-tracker-prod --tail=50
+                      exit 1
+                  fi
+
+                  # Clean up port forward
+                  kill $PF_PID || true
+
+            - name: Update Deployment Status
+              if: success()
+              run: |
+                  echo "🚀 Deployment successful!"
+                  echo "Application URL: https://pool-tracker.fr"
+                  echo "Image deployed: ${{ needs.build.outputs.image_tag }}"
+                  echo "Image digest: ${{ needs.build.outputs.image_digest }}"
+
+    # Cleanup on failure
+    cleanup-on-failure:
+        name: Cleanup Failed Deployment
+        runs-on: ubuntu-latest
+        needs: [build, deploy]
+        if: failure() && inputs.force_redeploy
+        steps:
+            - name: Set up Kubernetes context
+              uses: azure/k8s-set-context@v4
+              with:
+                  method: service-account
+                  k8s-url: ${{ env.KUBERNETES_URL }}
+                  k8s-secret: ${{ env.KUBERNETES_SECRET }}
+
+            - name: Gather Debug Information
+              run: |
+                  echo "=== Debug Information ==="
+                  kubectl get all -n pool-tracker-prod
+                  kubectl describe pods -n pool-tracker-prod
+                  kubectl logs -l app=pool-tracker -n pool-tracker-prod --tail=100 || true
+                  kubectl get events -n pool-tracker-prod --sort-by=.metadata.creationTimestamp
+
+            - name: Rollback if needed
+              if: inputs.force_redeploy == false
+              run: |
+                  echo "Attempting rollback..."
+                  kubectl rollout undo deployment/pool-tracker-deployment-prod -n pool-tracker-prod || true
