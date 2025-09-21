@@ -3,18 +3,19 @@ services:
     build:
       context: .
       dockerfile: ./docker/client/Dockerfile
+    restart: unless-stopped
     ports:
       - "${CLIENT_PORT}:${CLIENT_PORT}"
     depends_on:
       - server
     networks:
       - pool-tracker-network
-    restart: unless-stopped
 
   server:
     build:
       context: .
       dockerfile: ./docker/server/Dockerfile
+    restart: unless-stopped
     ports:
       - "${SERVER_PORT}:${SERVER_PORT}"
     environment:
@@ -30,11 +31,11 @@ services:
       - db
     networks:
       - pool-tracker-network
-    restart: unless-stopped
 
   db:
     image: mysql:8.0
-    restart: always
+    restart: unless-stopped
+    platform: linux/amd64
     ports:
       - "${MYSQL_PORT}:${MYSQL_PORT}"
     environment:
