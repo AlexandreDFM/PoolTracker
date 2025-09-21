@@ -99,11 +99,6 @@ jobs:
                   build-args: |
                       NODE_ENV=production
 
-            - name: Generate SBOM
-              uses: anchore/sbom-action@v0
-              with:
-                  image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
-
     # Deploy to Kubernetes
     deploy:
         name: Deploy to Production Kubernetes
