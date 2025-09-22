@@ -169,7 +169,7 @@ jobs:
                       deploy/kubernetes/production/service.yaml
                       deploy/kubernetes/production/ingress.yaml
                   images: |
-                      ghcr.io/alexandredfm/pool-tracker:${{ github.sha }}
+                      ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.image_tag }}
                   imagepullsecrets: |
                       github-container-registry
 
