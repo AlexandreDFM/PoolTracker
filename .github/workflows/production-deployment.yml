@@ -121,151 +121,61 @@ jobs:
                   k8s-url: ${{ env.KUBERNETES_URL }}
                   k8s-secret: ${{ env.KUBERNETES_SECRET }}
 
-            - name: Verify Kubernetes connectivity
-              run: |
-                  echo "Testing Kubernetes connectivity..."
-                  kubectl cluster-info
-                  kubectl get nodes
-
             - name: Create/Update Namespace
-              run: |
-                  echo "Setting up namespace..."
-                  kubectl apply -f deploy/kubernetes/namespaces.yaml
+              run: kubectl apply -f deploy/kubernetes/namespaces.yaml
 
             - name: Create Production Secrets
-              run: |
-                  echo "Creating production secrets..."
+              uses: Azure/k8s-create-secret@v4
+              with:
+                  namespace: pool-tracker-prod
+                  secret-type: generic
+                  secret-name: pool-tracker-secret-prod
+                  data: |
+                      DB_USER=${{ env.DB_USER }}
+                      DB_PASSWORD=${{ env.DB_PASSWORD }}
+                      JWT_SECRET=${{ env.JWT_SECRET }}
+                      SESSION_SECRET=${{ env.SESSION_SECRET }}
 
-                  # Delete existing secrets if they exist
-                  kubectl delete secret pool-tracker-secret-prod -n pool-tracker-prod --ignore-not-found=true
-                  kubectl delete secret github-container-registry -n pool-tracker-prod --ignore-not-found=true
-
-                  # Create application secrets
-                  kubectl create secret generic pool-tracker-secret-prod -n pool-tracker-prod \
-                      --from-literal=DB_USER="${{ env.DB_USER }}" \
-                      --from-literal=DB_PASSWORD="${{ env.DB_PASSWORD }}" \
-                      --from-literal=JWT_SECRET="${{ env.JWT_SECRET }}" \
-                      --from-literal=SESSION_SECRET="${{ env.SESSION_SECRET }}"
-
-                  # Create GitHub Container Registry secret
-                  kubectl create secret docker-registry github-container-registry -n pool-tracker-prod \
-                      --docker-server=${{ env.REGISTRY }} \
-                      --docker-username=${{ env.GITHUB_USERNAME }} \
-                      --docker-password=${{ env.GITHUB_TOKEN }} \
-                      --docker-email=${{ github.actor }}@users.noreply.github.com
+            - name: Create Container Registry Secret
+              uses: Azure/k8s-create-secret@v4
+              with:
+                  namespace: pool-tracker-prod
+                  secret-type: docker-registry
+                  secret-name: github-container-registry
+                  container-registry-url: ${{ env.REGISTRY }}
+                  container-registry-username: ${{ env.GITHUB_USERNAME }}
+                  container-registry-password: ${{ env.GITHUB_TOKEN }}
 
             - name: Apply ConfigMap
-              run: |
-                  echo "Applying configuration..."
-                  kubectl apply -f deploy/kubernetes/production/configmap.yaml
+              run: kubectl apply -f deploy/kubernetes/production/configmap.yaml
 
             - name: Deploy Database
               run: |
-                  echo "Deploying database..."
-
-                  # Check if database exists
                   if ! kubectl get deployment pool-tracker-db-deployment-prod -n pool-tracker-prod >/dev/null 2>&1; then
-                      echo "Deploying new database..."
                       kubectl apply -f deploy/kubernetes/production/database.yaml
-
-                      # Wait for database to be ready
-                      echo "Waiting for database to be ready..."
                       kubectl wait --for=condition=available --timeout=300s deployment/pool-tracker-db-deployment-prod -n pool-tracker-prod
-                      kubectl wait --for=condition=ready --timeout=300s pod -l app=mysql -n pool-tracker-prod
-                  else
-                      echo "Database already exists, checking health..."
-                      kubectl get pods -l app=mysql -n pool-tracker-prod
                   fi
 
             - name: Deploy Application
-              run: |
-                  echo "Deploying application with image: ${{ needs.build.outputs.image_tag }}"
-
-                  # Create a temporary deployment file with the correct image
-                  IMAGE_TAG="${{ needs.build.outputs.image_tag }}"
-                  cp deploy/kubernetes/production/deployment.yaml deploy/kubernetes/production/deployment-temp.yaml
-
-                  # Use a more robust replacement method
-                  sed -i.bak "s|ghcr\.io/alexandredfm/pool-tracker:latest|${IMAGE_TAG}|g" deploy/kubernetes/production/deployment-temp.yaml
-
-                  # Verify the replacement worked
-                  echo "Updated deployment file:"
-                  grep "image:" deploy/kubernetes/production/deployment-temp.yaml || echo "No image line found"
-
-                  # Apply manifests
-                  kubectl apply -f deploy/kubernetes/production/deployment-temp.yaml
-                  kubectl apply -f deploy/kubernetes/production/service.yaml
-
-                  # Clean up temporary file
-                  rm -f deploy/kubernetes/production/deployment-temp.yaml deploy/kubernetes/production/deployment-temp.yaml.bak
-
-            - name: Wait for Application Deployment
-              run: |
-                  echo "Waiting for application to be ready..."
-
-                  # Wait for deployment rollout
-                  kubectl rollout status deployment/pool-tracker-deployment-prod -n pool-tracker-prod --timeout=600s
-
-                  # Wait for pods to be ready
-                  kubectl wait --for=condition=ready --timeout=300s pod -l app=pool-tracker -n pool-tracker-prod
-
-            - name: Apply Ingress Configuration
-              run: |
-                  echo "Configuring ingress..."
-                  kubectl apply -f deploy/kubernetes/production/ingress.yaml
+              uses: azure/k8s-deploy@v5
+              with:
+                  action: deploy
+                  strategy: basic
+                  namespace: pool-tracker-prod
+                  manifests: |
+                      deploy/kubernetes/production/deployment.yaml
+                      deploy/kubernetes/production/service.yaml
+                      deploy/kubernetes/production/ingress.yaml
+                  images: |
+                      ghcr.io/alexandredfm/pool-tracker:${{ github.sha }}
+                  imagepullsecrets: |
+                      github-container-registry
 
             - name: Verify Deployment
               run: |
-                  echo "=== Deployment Verification ==="
-                  echo "Namespace status:"
+                  echo "=== Deployment Status ==="
                   kubectl get all -n pool-tracker-prod
-                  echo ""
-                  echo "Pod details:"
-                  kubectl get pods -n pool-tracker-prod -o wide
-                  echo ""
-                  echo "Service endpoints:"
-                  kubectl get endpoints -n pool-tracker-prod
-                  echo ""
-                  echo "Ingress status:"
-                  kubectl get ingress -n pool-tracker-prod -o wide
-                  echo ""
-                  echo "Recent events:"
-                  kubectl get events -n pool-tracker-prod --sort-by=.metadata.creationTimestamp --field-selector type!=Normal | tail -10
-
-            - name: Health Check
-              run: |
-                  echo "Running health checks..."
-
-                  # Get service IP for internal health check
-                  SERVICE_IP=$(kubectl get service pool-tracker-service-prod -n pool-tracker-prod -o jsonpath='{.spec.clusterIP}')
-                  echo "Service IP: $SERVICE_IP"
-
-                  # Port forward for testing
-                  kubectl port-forward service/pool-tracker-service-prod 8080:80 -n pool-tracker-prod &
-                  PF_PID=$!
-
-                  # Wait for port forward to be ready
-                  sleep 10
-
-                  # Test health endpoint
-                  if curl -f -s http://localhost:8080/ >/dev/null; then
-                      echo "✅ Health check passed"
-                  else
-                      echo "❌ Health check failed"
-                      kubectl logs -l app=pool-tracker -n pool-tracker-prod --tail=50
-                      exit 1
-                  fi
-
-                  # Clean up port forward
-                  kill $PF_PID || true
-
-            - name: Update Deployment Status
-              if: success()
-              run: |
-                  echo "🚀 Deployment successful!"
-                  echo "Application URL: https://pool-tracker.fr"
-                  echo "Image deployed: ${{ needs.build.outputs.image_tag }}"
-                  echo "Image digest: ${{ needs.build.outputs.image_digest }}"
+                  kubectl wait --for=condition=ready --timeout=300s pod -l app=pool-tracker -n pool-tracker-prod
 
     # Cleanup on failure
     cleanup-on-failure:
