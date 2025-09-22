@@ -125,26 +125,28 @@ jobs:
               run: kubectl apply -f deploy/kubernetes/namespaces.yaml
 
             - name: Create Production Secrets
-              uses: Azure/k8s-create-secret@v4
-              with:
-                  namespace: pool-tracker-prod
-                  secret-type: generic
-                  secret-name: pool-tracker-secret-prod
-                  data: |
-                      DB_USER=${{ env.DB_USER }}
-                      DB_PASSWORD=${{ env.DB_PASSWORD }}
-                      JWT_SECRET=${{ env.JWT_SECRET }}
-                      SESSION_SECRET=${{ env.SESSION_SECRET }}
+              run: |
+                  # Delete existing secret if it exists
+                  kubectl delete secret pool-tracker-secret-prod -n pool-tracker-prod --ignore-not-found=true
+
+                  # Create application secrets
+                  kubectl create secret generic pool-tracker-secret-prod -n pool-tracker-prod \
+                      --from-literal=DB_USER="${{ env.DB_USER }}" \
+                      --from-literal=DB_PASSWORD="${{ env.DB_PASSWORD }}" \
+                      --from-literal=JWT_SECRET="${{ env.JWT_SECRET }}" \
+                      --from-literal=SESSION_SECRET="${{ env.SESSION_SECRET }}"
 
             - name: Create Container Registry Secret
-              uses: Azure/k8s-create-secret@v4
-              with:
-                  namespace: pool-tracker-prod
-                  secret-type: docker-registry
-                  secret-name: github-container-registry
-                  container-registry-url: ${{ env.REGISTRY }}
-                  container-registry-username: ${{ env.GITHUB_USERNAME }}
-                  container-registry-password: ${{ env.GITHUB_TOKEN }}
+              run: |
+                  # Delete existing secret if it exists
+                  kubectl delete secret github-container-registry -n pool-tracker-prod --ignore-not-found=true
+
+                  # Create GitHub Container Registry secret
+                  kubectl create secret docker-registry github-container-registry -n pool-tracker-prod \
+                      --docker-server=${{ env.REGISTRY }} \
+                      --docker-username=${{ env.GITHUB_USERNAME }} \
+                      --docker-password=${{ env.GITHUB_TOKEN }} \
+                      --docker-email=${{ github.actor }}@users.noreply.github.com
 
             - name: Apply ConfigMap
               run: kubectl apply -f deploy/kubernetes/production/configmap.yaml
