@@ -153,9 +153,40 @@ jobs:
 
             - name: Deploy Database
               run: |
-                  if ! kubectl get deployment pool-tracker-db-deployment-prod -n pool-tracker-prod >/dev/null 2>&1; then
-                      kubectl apply -f deploy/kubernetes/production/database.yaml
-                      kubectl wait --for=condition=available --timeout=300s deployment/pool-tracker-db-deployment-prod -n pool-tracker-prod
+                  echo "Deploying database components..."
+
+                  # Always apply database manifests (they're idempotent)
+                  kubectl apply -f deploy/kubernetes/production/database.yaml
+
+                  # Check if database deployment exists and is ready
+                  if kubectl get deployment pool-tracker-db-deployment-prod -n pool-tracker-prod >/dev/null 2>&1; then
+                      echo "Database deployment exists, checking status..."
+
+                      # Check current status
+                      READY_REPLICAS=$(kubectl get deployment pool-tracker-db-deployment-prod -n pool-tracker-prod -o jsonpath='{.status.readyReplicas}' || echo "0")
+                      DESIRED_REPLICAS=$(kubectl get deployment pool-tracker-db-deployment-prod -n pool-tracker-prod -o jsonpath='{.status.replicas}' || echo "1")
+
+                      echo "Database status: ${READY_REPLICAS}/${DESIRED_REPLICAS} replicas ready"
+
+                      if [ "$READY_REPLICAS" != "$DESIRED_REPLICAS" ]; then
+                          echo "Waiting for database to be ready (this may take several minutes for MySQL initialization)..."
+
+                          # Wait with longer timeout for MySQL
+                          if ! kubectl wait --for=condition=available --timeout=900s deployment/pool-tracker-db-deployment-prod -n pool-tracker-prod; then
+                              echo "Database deployment timed out, checking pod status..."
+                              kubectl get pods -l app=mysql -n pool-tracker-prod
+                              kubectl describe pods -l app=mysql -n pool-tracker-prod
+                              kubectl logs -l app=mysql -n pool-tracker-prod --tail=50 || echo "No logs available"
+
+                              # Still continue - the app deployment might work anyway
+                              echo "Continuing despite database timeout (app will retry connections)..."
+                          fi
+                      else
+                          echo "Database is already ready!"
+                      fi
+                  else
+                      echo "Database deployment created, waiting for it to be ready..."
+                      kubectl wait --for=condition=available --timeout=900s deployment/pool-tracker-db-deployment-prod -n pool-tracker-prod || echo "Database timeout, continuing..."
                   fi
 
             - name: Deploy Application

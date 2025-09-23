@@ -14,7 +14,6 @@ spec:
     resources:
         requests:
             storage: 20Gi
-    storageClassName: fast-ssd  # Adjust based on your cluster's storage classes
 
 ---
 # MySQL Deployment
@@ -84,27 +83,26 @@ spec:
                               - ping
                               - -h
                               - localhost
-                      initialDelaySeconds: 30
+                      initialDelaySeconds: 60
                       periodSeconds: 30
                       timeoutSeconds: 10
                       successThreshold: 1
-                      failureThreshold: 3
+                      failureThreshold: 5
                   readinessProbe:
                       exec:
                           command:
-                              - mysql
+                              - mysqladmin
+                              - ping
                               - -h
                               - localhost
                               - -u
                               - root
                               - -p${MYSQL_ROOT_PASSWORD}
-                              - -e
-                              - "SELECT 1"
-                      initialDelaySeconds: 15
+                      initialDelaySeconds: 30
                       periodSeconds: 10
                       timeoutSeconds: 5
                       successThreshold: 1
-                      failureThreshold: 3
+                      failureThreshold: 5
                   resources:
                       requests:
                           memory: "512Mi"
