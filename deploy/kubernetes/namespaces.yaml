@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: pool-tracker-prod
+    labels:
+        environment: production
+        app: pool-tracker
+        version: "v1.0.0"
+        managed-by: kubernetes
+    annotations:
+        description: "Production namespace for PoolTracker application"
+        kubernetes.io/managed-by: "PoolTracker-DevOps"
