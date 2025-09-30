@@ -1,0 +1,218 @@
+---
+# Persistent Volume Claim for MySQL data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: mysql-data-pvc-prod
+    namespace: pool-tracker-prod
+    labels:
+        app: mysql
+        environment: production
+spec:
+    accessModes:
+        - ReadWriteOnce
+    resources:
+        requests:
+            storage: 10Gi
+    storageClassName: local-path
+
+---
+# MySQL Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: pool-tracker-db-deployment-prod
+    namespace: pool-tracker-prod
+    labels:
+        app: mysql
+        environment: production
+spec:
+    replicas: 1
+    strategy:
+        type: Recreate  # MySQL can't have multiple replicas without clustering
+    selector:
+        matchLabels:
+            app: mysql
+            environment: production
+    template:
+        metadata:
+            labels:
+                app: mysql
+                environment: production
+        spec:
+            containers:
+                - name: mysql
+                  image: mysql:8.0.35
+                  ports:
+                      - containerPort: 3306
+                        name: mysql
+                        protocol: TCP
+                  env:
+                      - name: MYSQL_ROOT_PASSWORD
+                        valueFrom:
+                            secretKeyRef:
+                                name: pool-tracker-secret-prod
+                                key: DB_PASSWORD
+                      - name: MYSQL_DATABASE
+                        valueFrom:
+                            configMapKeyRef:
+                                name: pool-tracker-config-prod
+                                key: DB_NAME
+                      - name: MYSQL_USER
+                        valueFrom:
+                            secretKeyRef:
+                                name: pool-tracker-secret-prod
+                                key: DB_USER
+                      - name: MYSQL_PASSWORD
+                        valueFrom:
+                            secretKeyRef:
+                                name: pool-tracker-secret-prod
+                                key: DB_PASSWORD
+                  args:
+                      - "--character-set-server=utf8mb4"
+                      - "--collation-server=utf8mb4_unicode_ci"
+                      - "--default-authentication-plugin=mysql_native_password"
+                      - "--innodb-buffer-pool-size=256M"
+                      - "--max-connections=200"
+                  volumeMounts:
+                      - name: mysql-data
+                        mountPath: /var/lib/mysql
+                      - name: mysql-init-scripts
+                        mountPath: /docker-entrypoint-initdb.d
+                        readOnly: true
+                  livenessProbe:
+                      exec:
+                          command:
+                              - mysqladmin
+                              - ping
+                              - -h
+                              - localhost
+                      initialDelaySeconds: 60
+                      periodSeconds: 30
+                      timeoutSeconds: 10
+                      successThreshold: 1
+                      failureThreshold: 5
+                  readinessProbe:
+                      exec:
+                          command:
+                              - mysqladmin
+                              - ping
+                              - -h
+                              - localhost
+                      initialDelaySeconds: 30
+                      periodSeconds: 10
+                      timeoutSeconds: 5
+                      successThreshold: 1
+                      failureThreshold: 5
+                  resources:
+                      requests:
+                          memory: "512Mi"
+                          cpu: "200m"
+                      limits:
+                          memory: "1Gi"
+                          cpu: "500m"
+            volumes:
+                - name: mysql-data
+                  persistentVolumeClaim:
+                      claimName: mysql-data-pvc-prod
+                - name: mysql-init-scripts
+                  configMap:
+                      name: mysql-init-config-prod
+            securityContext:
+                runAsUser: 999
+                runAsGroup: 999
+                fsGroup: 999
+
+---
+# MySQL Initialization ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: mysql-init-config-prod
+    namespace: pool-tracker-prod
+    labels:
+        app: mysql
+        environment: production
+data:
+    01-init-production.sql: |
+        -- Production Database Initialization Script
+        CREATE DATABASE IF NOT EXISTS `pool_tracker_prod` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+        USE `pool_tracker_prod`;
+
+        -- Users table for authentication
+        CREATE TABLE IF NOT EXISTS `users` (
+          `id` int(11) NOT NULL AUTO_INCREMENT,
+          `email` varchar(255) NOT NULL UNIQUE,
+          `username` varchar(100) NOT NULL UNIQUE,
+          `password_hash` varchar(255) NOT NULL,
+          `first_name` varchar(100),
+          `last_name` varchar(100),
+          `role` enum('student', 'admin', 'moderator') DEFAULT 'student',
+          `epitech_login` varchar(100) UNIQUE,
+          `points` int(11) DEFAULT 0,
+          `is_active` boolean DEFAULT true,
+          `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+          `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (`id`),
+          INDEX `idx_email` (`email`),
+          INDEX `idx_username` (`username`),
+          INDEX `idx_epitech_login` (`epitech_login`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+        -- Point transactions table
+        CREATE TABLE IF NOT EXISTS `point_transactions` (
+          `id` int(11) NOT NULL AUTO_INCREMENT,
+          `user_id` int(11) NOT NULL,
+          `points_change` int(11) NOT NULL,
+          `reason` varchar(255),
+          `transaction_type` enum('earned', 'spent', 'bonus', 'penalty') NOT NULL,
+          `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (`id`),
+          FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+          INDEX `idx_user_id` (`user_id`),
+          INDEX `idx_transaction_type` (`transaction_type`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+        -- Activities table
+        CREATE TABLE IF NOT EXISTS `activities` (
+          `id` int(11) NOT NULL AUTO_INCREMENT,
+          `name` varchar(200) NOT NULL,
+          `description` text,
+          `points_reward` int(11) DEFAULT 0,
+          `activity_type` enum('sport', 'culture', 'academic', 'social', 'other') DEFAULT 'other',
+          `location` varchar(200),
+          `start_time` datetime,
+          `end_time` datetime,
+          `max_participants` int(11),
+          `current_participants` int(11) DEFAULT 0,
+          `is_active` boolean DEFAULT true,
+          `created_by` int(11),
+          `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+          `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (`id`),
+          FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+          INDEX `idx_activity_type` (`activity_type`),
+          INDEX `idx_start_time` (`start_time`),
+          INDEX `idx_is_active` (`is_active`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+---
+# MySQL Service
+apiVersion: v1
+kind: Service
+metadata:
+    name: pool-tracker-db-service-prod
+    namespace: pool-tracker-prod
+    labels:
+        app: mysql
+        environment: production
+spec:
+    type: ClusterIP
+    selector:
+        app: mysql
+        environment: production
+    ports:
+        - name: mysql
+          protocol: TCP
+          port: 3306
+          targetPort: 3306
