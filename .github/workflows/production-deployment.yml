@@ -155,39 +155,43 @@ jobs:
               run: |
                   echo "Deploying database components..."
 
-                  # Always apply database manifests (they're idempotent)
-                  kubectl apply -f deploy/kubernetes/production/database.yaml
+                  # Check if PVC exists and has conflicting configuration
+                  if kubectl get pvc mysql-data-pvc-prod -n pool-tracker-prod >/dev/null 2>&1; then
+                      CURRENT_STORAGE_CLASS=$(kubectl get pvc mysql-data-pvc-prod -n pool-tracker-prod -o jsonpath='{.spec.storageClassName}' 2>/dev/null || echo "")
+                      CURRENT_STORAGE_SIZE=$(kubectl get pvc mysql-data-pvc-prod -n pool-tracker-prod -o jsonpath='{.spec.resources.requests.storage}' 2>/dev/null || echo "")
+                      echo "Found existing PVC with storage class: '$CURRENT_STORAGE_CLASS', size: '$CURRENT_STORAGE_SIZE'"
 
-                  # Check if database deployment exists and is ready
-                  if kubectl get deployment pool-tracker-db-deployment-prod -n pool-tracker-prod >/dev/null 2>&1; then
-                      echo "Database deployment exists, checking status..."
-
-                      # Check current status
-                      READY_REPLICAS=$(kubectl get deployment pool-tracker-db-deployment-prod -n pool-tracker-prod -o jsonpath='{.status.readyReplicas}' || echo "0")
-                      DESIRED_REPLICAS=$(kubectl get deployment pool-tracker-db-deployment-prod -n pool-tracker-prod -o jsonpath='{.status.replicas}' || echo "1")
-
-                      echo "Database status: ${READY_REPLICAS}/${DESIRED_REPLICAS} replicas ready"
-
-                      if [ "$READY_REPLICAS" != "$DESIRED_REPLICAS" ]; then
-                          echo "Waiting for database to be ready (this may take several minutes for MySQL initialization)..."
-
-                          # Wait with longer timeout for MySQL
-                          if ! kubectl wait --for=condition=available --timeout=900s deployment/pool-tracker-db-deployment-prod -n pool-tracker-prod; then
-                              echo "Database deployment timed out, checking pod status..."
-                              kubectl get pods -l app=mysql -n pool-tracker-prod
-                              kubectl describe pods -l app=mysql -n pool-tracker-prod
-                              kubectl logs -l app=mysql -n pool-tracker-prod --tail=50 || echo "No logs available"
-
-                              # Still continue - the app deployment might work anyway
-                              echo "Continuing despite database timeout (app will retry connections)..."
-                          fi
+                      # Check if we need to recreate PVC due to immutable specs
+                      if [ "$CURRENT_STORAGE_CLASS" != "local-path" ] || [ "$CURRENT_STORAGE_SIZE" != "10Gi" ]; then
+                          echo "PVC configuration mismatch. Current: $CURRENT_STORAGE_CLASS/$CURRENT_STORAGE_SIZE, Expected: local-path/10Gi"
+                          echo "Cleaning up existing database resources..."
+                          kubectl delete deployment pool-tracker-db-deployment-prod -n pool-tracker-prod --ignore-not-found=true
+                          kubectl delete pvc mysql-data-pvc-prod -n pool-tracker-prod --ignore-not-found=true
+                          kubectl delete service pool-tracker-db-service-prod -n pool-tracker-prod --ignore-not-found=true
+                          kubectl delete configmap mysql-init-config-prod -n pool-tracker-prod --ignore-not-found=true
+                          echo "Waiting for resources to be fully deleted..."
+                          sleep 20
                       else
-                          echo "Database is already ready!"
+                          echo "PVC configuration is correct."
                       fi
                   else
-                      echo "Database deployment created, waiting for it to be ready..."
-                      kubectl wait --for=condition=available --timeout=900s deployment/pool-tracker-db-deployment-prod -n pool-tracker-prod || echo "Database timeout, continuing..."
+                      echo "No existing PVC found. Proceeding with fresh deployment..."
                   fi
+
+                  # Deploy database components
+                  kubectl apply -f deploy/kubernetes/production/database.yaml
+
+                  # Wait for database to be ready with appropriate timeout
+                  echo "Waiting for database to be ready (this may take several minutes for MySQL initialization)..."
+                  if ! kubectl wait --for=condition=ready --timeout=600s pod -l app=mysql -n pool-tracker-prod; then
+                      echo "Database deployment timed out, checking status..."
+                      kubectl get pods -l app=mysql -n pool-tracker-prod
+                      kubectl describe pods -l app=mysql -n pool-tracker-prod
+                      kubectl logs -l app=mysql -n pool-tracker-prod --tail=100 || echo "No logs available"
+                      exit 1
+                  fi
+
+                  echo "Database is ready!"
 
             - name: Deploy Application
               uses: azure/k8s-deploy@v5
