@@ -118,19 +118,19 @@ spec:
                       items:
                       - key: tls.crt
                         path: tls.crt
-                        mode: 0644
-                # TLS private key volume  
+                        mode: 0o644
+                # TLS private key volume
                 - name: tls-private-key
                   secret:
                       secretName: pool-tracker-tls-cert
                       items:
                       - key: tls.key
                         path: tls.key
-                        mode: 0600
+                        mode: 0o600
                 # Certificate configuration
                 - name: cert-config
                   configMap:
                       name: pool-tracker-cert-config
-                      defaultMode: 0644
+                      defaultMode: 0o644
             imagePullSecrets:
                 - name: github-container-registry
