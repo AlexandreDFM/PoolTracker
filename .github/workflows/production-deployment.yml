@@ -214,6 +214,7 @@ jobs:
                   strategy: basic
                   namespace: pool-tracker-prod
                   manifests: |
+                      deploy/kubernetes/production/certificates.yaml
                       deploy/kubernetes/production/deployment.yaml
                       deploy/kubernetes/production/service.yaml
                       deploy/kubernetes/production/ingress.yaml
