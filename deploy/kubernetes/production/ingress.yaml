@@ -12,7 +12,7 @@ spec:
   entryPoints:
     - web
   routes:
-    - match: Host(`pool-tracker.alexandredfm.fr`) || Host(`www.pool-tracker.alexandredfm.fr`)
+    - match: Host(`pool.nice-tek.eu`) || Host(`www.pool.nice-tek.eu`)
       kind: Rule
       middlewares:
         - name: redirect-to-https
@@ -38,11 +38,11 @@ spec:
   tls:
     certResolver: le
     domains:
-      - main: pool-tracker.alexandredfm.fr
+      - main: pool.nice-tek.eu
         sans:
-          - www.pool-tracker.alexandredfm.fr
+          - www.pool.nice-tek.eu
   routes:
-    - match: Host(`pool-tracker.alexandredfm.fr`) || Host(`www.pool-tracker.alexandredfm.fr`)
+    - match: Host(`pool.nice-tek.eu`) || Host(`www.pool.nice-tek.eu`)
       kind: Rule
       middlewares:
         - name: security-headers

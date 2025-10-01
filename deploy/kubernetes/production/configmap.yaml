@@ -21,7 +21,7 @@ data:
     LOG_FORMAT: "json"
 
     # CORS configuration
-    CORS_ORIGIN: "https://pool-tracker.alexandredfm.fr,https://www.pool-tracker.alexandredfm.fr"
+    CORS_ORIGIN: "https://pool.nice-tek.eu,https://www.pool.nice-tek.eu"
 
     # Rate limiting
     RATE_LIMIT_WINDOW_MS: "900000"  # 15 minutes
