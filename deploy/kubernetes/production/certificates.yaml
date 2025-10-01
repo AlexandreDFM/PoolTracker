@@ -1,0 +1,112 @@
+---
+# Certificate configuration for PoolTracker pods
+# This creates a TLS certificate that can be mounted into pods
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pool-tracker-tls-cert
+  namespace: pool-tracker-prod
+  labels:
+    app: pool-tracker
+    environment: production
+type: kubernetes.io/tls
+data:
+  # Base64 encoded certificate and private key
+  # Replace these with your actual certificate data
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+  tls.key: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCi0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K
+
+---
+# ConfigMap for certificate configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pool-tracker-cert-config
+  namespace: pool-tracker-prod
+  labels:
+    app: pool-tracker
+    environment: production
+data:
+  # SSL/TLS configuration
+  ssl.conf: |
+    # SSL Configuration for internal services
+    ssl_certificate /etc/ssl/certs/tls.crt;
+    ssl_certificate_key /etc/ssl/private/tls.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+  # Certificate authority bundle (if needed for internal CA)
+  ca-bundle.crt: |
+    -----BEGIN CERTIFICATE-----
+    # Add your CA certificate here if using internal CA
+    -----END CERTIFICATE-----
+
+---
+# Self-signed certificate generator job (for development/testing)
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: generate-self-signed-cert
+  namespace: pool-tracker-prod
+  labels:
+    app: pool-tracker
+    component: cert-generator
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: cert-generator
+        image: alpine/openssl:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "Generating self-signed certificate for pool.nice-tek.eu..."
+
+          # Create certificate directory
+          mkdir -p /tmp/certs
+
+          # Generate private key
+          openssl genrsa -out /tmp/certs/tls.key 2048
+
+          # Create certificate signing request
+          openssl req -new -key /tmp/certs/tls.key -out /tmp/certs/tls.csr -subj "/CN=pool.nice-tek.eu/O=PoolTracker/C=FR"
+
+          # Generate self-signed certificate
+          openssl x509 -req -in /tmp/certs/tls.csr -signkey /tmp/certs/tls.key -out /tmp/certs/tls.crt -days 365 \
+            -extensions v3_req -extfile <(cat <<EOF
+          [v3_req]
+          keyUsage = keyEncipherment, dataEncipherment
+          extendedKeyUsage = serverAuth
+          subjectAltName = @alt_names
+
+          [alt_names]
+          DNS.1 = pool.nice-tek.eu
+          DNS.2 = www.pool.nice-tek.eu
+          DNS.3 = localhost
+          IP.1 = 127.0.0.1
+          EOF
+          )
+
+          # Base64 encode for Kubernetes secret
+          echo "Certificate generated successfully:"
+          echo "tls.crt:"
+          base64 -w 0 /tmp/certs/tls.crt
+          echo ""
+          echo "tls.key:"
+          base64 -w 0 /tmp/certs/tls.key
+          echo ""
+          echo ""
+          echo "Copy the above base64 values to the pool-tracker-tls-cert secret"
+        volumeMounts:
+        - name: cert-output
+          mountPath: /tmp/certs
+      volumes:
+      - name: cert-output
+        emptyDir: {}

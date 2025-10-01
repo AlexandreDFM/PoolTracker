@@ -151,6 +151,20 @@ jobs:
             - name: Apply ConfigMap
               run: kubectl apply -f deploy/kubernetes/production/configmap.yaml
 
+            - name: Setup SSL Certificates
+              run: |
+                  echo "Setting up SSL certificates for pods..."
+
+                  # Make certificate management script executable
+                  chmod +x deploy/kubernetes/manage-certificates.sh
+
+                  # Install certificates (this will generate self-signed certs for internal pod SSL)
+                  cd deploy/kubernetes
+                  ./manage-certificates.sh install
+
+                  # Verify certificate installation
+                  ./manage-certificates.sh verify
+
             - name: Deploy Database
               run: |
                   echo "Deploying database components..."
