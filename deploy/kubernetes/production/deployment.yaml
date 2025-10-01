@@ -98,39 +98,5 @@ spec:
                       limits:
                           memory: "512Mi"
                           cpu: "300m"
-                  volumeMounts:
-                      # Mount TLS certificates
-                      - name: tls-certs
-                        mountPath: /etc/ssl/certs
-                        readOnly: true
-                      - name: tls-private-key
-                        mountPath: /etc/ssl/private
-                        readOnly: true
-                      # Mount certificate configuration
-                      - name: cert-config
-                        mountPath: /etc/ssl/config
-                        readOnly: true
-            volumes:
-                # TLS certificate volume
-                - name: tls-certs
-                  secret:
-                      secretName: pool-tracker-tls-cert
-                      items:
-                      - key: tls.crt
-                        path: tls.crt
-                        mode: 0o644
-                # TLS private key volume
-                - name: tls-private-key
-                  secret:
-                      secretName: pool-tracker-tls-cert
-                      items:
-                      - key: tls.key
-                        path: tls.key
-                        mode: 0o600
-                # Certificate configuration
-                - name: cert-config
-                  configMap:
-                      name: pool-tracker-cert-config
-                      defaultMode: 0o644
             imagePullSecrets:
                 - name: github-container-registry
