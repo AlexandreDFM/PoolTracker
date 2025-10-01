@@ -57,6 +57,12 @@ COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
 # Copy and set up startup script
 COPY docker/start.sh /app/start.sh
 
+# Create SSL directories and set permissions
+RUN mkdir -p /etc/ssl/certs /etc/ssl/private /etc/ssl/config && \
+    chown -R nginx:nginx /etc/ssl && \
+    chmod 755 /etc/ssl/certs /etc/ssl/config && \
+    chmod 700 /etc/ssl/private
+
 # Make startup script executable
 RUN chmod +x /app/start.sh
 

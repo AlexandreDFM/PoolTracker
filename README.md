@@ -108,11 +108,53 @@ On the first startup, a default admin account is created:
 3. **AER (Assistant Epitech Régional)**: Can only manage points for students
 4. **STUDENT**: Can view their profile and team information
 
+## Database Management
+
+PoolTracker includes comprehensive database management tools for backing up and restoring both local and remote databases.
+
+### Quick Database Operations
+
+```bash
+# Setup database management (first time only)
+cd scripts && ./setup-db-management.sh
+
+# Check database status
+./db.sh status
+
+# Backup local database
+./db.sh dump-local
+
+# Backup remote/production database
+./db.sh dump-remote
+
+# Restore local database (from latest backup)
+./db.sh restore-local
+
+# List all available backups
+./db.sh list
+
+# Show help and all commands
+./db.sh help
+```
+
+### Database Management Features
+
+- ✅ **Local & Remote Database Support** - Backup and restore both development and production databases
+- ✅ **Automatic Backup Organization** - Timestamped backups with latest symlinks
+- ✅ **Safe Remote Operations** - Explicit confirmation required for production restores
+- ✅ **Connection Validation** - Tests database connectivity before operations
+- ✅ **Backup Cleanup** - Automatic cleanup of old backup files
+- ✅ **Comprehensive Logging** - Detailed status and progress information
+
+For complete database management documentation, see [documentation/DB-MANAGEMENT.md](documentation/DB-MANAGEMENT.md).
+
 ## Documentation
 
 - [Client Documentation](client/README.md)
 - [Server Documentation](server/README.md)
 - [Docker Documentation](docker/README.md)
+- [Database Management](documentation/DB-MANAGEMENT.md)
+- [Production Deployment](deploy/kubernetes/README.md)
 
 ## Contributing
 
