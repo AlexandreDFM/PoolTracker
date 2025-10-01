@@ -106,7 +106,7 @@ jobs:
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/deploy-prod' || startsWith(github.ref, 'refs/tags/v')
         environment:
             name: production
-            url: https://pool-tracker.alexandredfm.fr
+            url: https://pool.nice-tek.eu
         concurrency:
             group: production-deployment
             cancel-in-progress: false
