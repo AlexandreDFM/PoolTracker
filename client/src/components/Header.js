@@ -74,7 +74,7 @@ const Header = () => {
                                 </li>
                             </>
                         ) : null}
-                        {canManagePoints && (
+                        {/* {canManagePoints && (
                             <>
                                 <li>
                                     <Link to="/admin/quests">Quests</Link>
@@ -83,12 +83,20 @@ const Header = () => {
                                     <Link to="/admin/history">History</Link>
                                 </li>
                             </>
-                        )}
+                        )} */}
 
                         {canManagePoints ? (
-                            <li>
-                                <Link to="/admin/points">Points</Link>
-                            </li>
+                            <>
+                                <li>
+                                    <Link to="/admin/points">Points</Link>
+                                </li>
+                                <li>
+                                    <Link to="/admin/quests">Quests</Link>
+                                </li>
+                                <li>
+                                    <Link to="/admin/history">History</Link>
+                                </li>
+                            </>
                         ) : (
                             <li>
                                 <Link to="/profile">My Profile</Link>
