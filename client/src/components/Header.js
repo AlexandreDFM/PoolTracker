@@ -5,7 +5,7 @@
  * │ @file          Header.js
  * │ @path          client/src/components/Header.js
  * │ @description   Header implementation
- * │ @version       1.0.0
+ * │ @version       1.0.1
  * │
  * │ @email         christophe.vandevoir@epitech.eu
  * │ @date          2025-04-30
@@ -72,18 +72,18 @@ const Header = () => {
                                 <li>
                                     <Link to="/admin/teams">Teams</Link>
                                 </li>
-                                {canManagePoints && (
-                                    <>
-                                        <li>
-                                            <Link to="/admin/quests">Quests</Link>
-                                        </li>
-                                        <li>
-                                            <Link to="/admin/history">History</Link>
-                                        </li>
-                                    </>
-                                )}
                             </>
                         ) : null}
+                        {canManagePoints && (
+                            <>
+                                <li>
+                                    <Link to="/admin/quests">Quests</Link>
+                                </li>
+                                <li>
+                                    <Link to="/admin/history">History</Link>
+                                </li>
+                            </>
+                        )}
 
                         {canManagePoints ? (
                             <li>
