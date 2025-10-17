@@ -4,14 +4,14 @@
     align-items: center;
     min-height: calc(100vh - 64px);
     padding: 2rem;
-    background-color: #f5f5f5;
+    background-color: var(--mantine-color-body);
 }
 
 .login-card {
     width: 100%;
     max-width: 400px;
     padding: 2rem;
-    background-color: white;
+    background-color: var(--mantine-color-white);
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
@@ -19,7 +19,7 @@
 .login-card h2 {
     margin-bottom: 1.5rem;
     text-align: center;
-    color: #0091D3;
+    color: var(--mantine-primary-color);
 }
 
 .form-group {
@@ -44,10 +44,9 @@
     display: block;
     width: 100%;
     padding: 0.75rem;
-    background-color: #0091D3;
-    color: white;
+    background-color: var(--mantine-primary-color);
+    color: var(--mantine-color-white);
     border: none;
-    border-radius: 4px;
     font-size: 1rem;
     font-weight: 500;
     cursor: pointer;

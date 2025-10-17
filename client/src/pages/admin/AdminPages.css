@@ -12,7 +12,7 @@
 }
 
 .admin-header h1 {
-    color: #0091D3;
+    color: var(--mantine-primary-color);
     margin: 0;
 }
 
@@ -29,23 +29,22 @@
 }
 
 .btn-add {
-    background-color: #28a745;
-    color: white;
+    background-color: var(--mantine-validated-color);
+    color: var(--mantine-color-white);
     border: none;
     padding: 0.5rem 1rem;
-    border-radius: 4px;
     font-weight: 500;
     cursor: pointer;
     transition: background-color 0.3s;
 }
 
 .btn-add:hover {
-    background-color: #218838;
+    background-color: var(--mantine-validated-secondary-color);
 }
 
 .form-container,
 .points-form {
-    background-color: white;
+    background-color: var(--mantine-color-white);
     padding: 1.5rem;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -55,8 +54,8 @@
 .form-container h2,
 .points-form h2 {
     margin-bottom: 1.5rem;
-    color: #333;
-    border-bottom: 2px solid #0091D3;
+    color: var(--mantine-color-text);
+    border-bottom: 2px solid var(--mantine-primary-color);
     padding-bottom: 0.5rem;
 }
 
@@ -103,8 +102,8 @@
 }
 
 .btn-save {
-    background-color: #0091D3;
-    color: white;
+    background-color: var(--mantine-primary-color);
+    color: var(--mantine-color-white);
 }
 
 .btn-save:hover {
@@ -113,7 +112,7 @@
 
 .btn-cancel {
     background-color: #f8f9fa;
-    color: #333;
+    color: var(--mantine-color-text);
     border: 1px solid #ddd;
 }
 
@@ -124,14 +123,14 @@
 .btn-save:disabled,
 .btn-cancel:disabled {
     background-color: #6c757d;
-    color: white;
+    color: var(--mantine-color-white);
     cursor: not-allowed;
 }
 
 .teams-list,
 .team-students,
 .students-summary {
-    background-color: white;
+    background-color: var(--mantine-color-white);
     padding: 1.5rem;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -142,8 +141,8 @@
 .team-students h2,
 .students-summary h2 {
     margin-bottom: 1.5rem;
-    color: #333;
-    border-bottom: 2px solid #0091D3;
+    color: var(--mantine-color-text);
+    border-bottom: 2px solid var(--mantine-primary-color);
     padding-bottom: 0.5rem;
 }
 
@@ -164,9 +163,9 @@
 }
 
 .data-table th {
-    background-color: #f5f5f5;
+    background-color: var(--mantine-primary-color);
     font-weight: 600;
-    color: #333;
+    color: var(--mantine-color-white);
 }
 
 .data-table tr {
@@ -199,8 +198,8 @@
 }
 
 .btn-edit {
-    background-color: #0091D3;
-    color: white;
+    background-color: var(--mantine-primary-color);
+    color: var(--mantine-color-white);
 }
 
 .btn-edit:hover {
@@ -208,8 +207,8 @@
 }
 
 .btn-delete {
-    background-color: #dc3545;
-    color: white;
+    background-color: var(--mantine-error-color);
+    color: var(--mantine-color-white);
 }
 
 .btn-delete:hover {
@@ -243,23 +242,23 @@
 }
 
 .positive {
-    color: #28a745;
+    color: var(--mantine-validated-color);
     font-weight: bold;
 }
 
 .negative {
-    color: #dc3545;
+    color: var(--mantine-error-color);
     font-weight: bold;
 }
 
 /* Styles de couleurs pour les équipes */
 .team-color-red {
-    color: #dc3545;
+    color: var(--mantine-error-color);
     font-weight: bold;
 }
 
 .team-color-green {
-    color: #28a745;
+    color: var(--mantine-validated-color);
     font-weight: bold;
 }
 
@@ -287,11 +286,11 @@
 }
 
 .color-dot-red {
-    background-color: #dc3545;
+    background-color: var(--mantine-error-color);
 }
 
 .color-dot-green {
-    background-color: #28a745;
+    background-color: var(--mantine-validated-color);
 }
 
 .color-dot-blue {
@@ -315,11 +314,11 @@
 }
 
 .color-select-red {
-    border-left: 5px solid #dc3545 !important;
+    border-left: 5px solid var(--mantine-error-color) !important;
 }
 
 .color-select-green {
-    border-left: 5px solid #28a745 !important;
+    border-left: 5px solid var(--mantine-validated-color) !important;
 }
 
 .color-select-blue {
@@ -342,9 +341,8 @@
 
 .filter-select {
     padding: 0.5rem;
-    border-radius: 4px;
     border: 1px solid #ccc;
-    background-color: white;
+    background-color: var(--mantine-color-white);
     min-width: 150px;
 }
 
@@ -357,7 +355,7 @@
 .form-help {
     display: block;
     margin-top: 0.25rem;
-    color: #dc3545;
+    color: var(--mantine-error-color);
     font-size: 0.85rem;
 }
 
@@ -371,23 +369,23 @@
 }
 
 .role-badge-ADMIN {
-    background-color: #dc3545;
-    color: white;
+    background-color: var(--mantine-error-color);
+    color: var(--mantine-color-white);
 }
 
 .role-badge-APE {
     background-color: #fd7e14;
-    color: white;
+    color: var(--mantine-color-white);
 }
 
 .role-badge-AER {
-    background-color: #28a745;
-    color: white;
+    background-color: var(--mantine-validated-color);
+    color: var(--mantine-color-white);
 }
 
 .role-badge-STUDENT {
     background-color: #007bff;
-    color: white;
+    color: var(--mantine-color-white);
 }
 
 /* Add these styles to client/src/pages/admin/AdminPages.css */
@@ -397,7 +395,7 @@
     padding: 1rem;
     border-radius: 4px;
     margin-bottom: 1.5rem;
-    border-left: 4px solid #0091D3;
+    border-left: 4px solid var(--mantine-primary-color);
 }
 
 .csv-import-instructions p {
@@ -437,7 +435,7 @@ input[type="file"] {
     padding: 0.75rem;
     border: 1px solid #ccc;
     border-radius: 4px;
-    background-color: white;
+    background-color: var(--mantine-color-white);
     margin-top: 0.5rem;
 }
 
@@ -461,7 +459,7 @@ input[type="file"]:disabled {
     position: absolute;
     z-index: 1000;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    background-color: white;
+    background-color: var(--mantine-color-white);
     border-radius: 8px;
     min-width: 350px;
     max-width: 450px;
@@ -473,15 +471,15 @@ input[type="file"]:disabled {
 }
 
 .btn-add-points {
-    background-color: #28a745;
+    background-color: var(--mantine-validated-color);
 }
 
 .btn-add-points:hover {
-    background-color: #218838;
+    background-color: var(--mantine-validated-secondary-color);
 }
 
 .btn-remove-points {
-    background-color: #dc3545;
+    background-color: var(--mantine-error-color);
 }
 
 .btn-remove-points:hover {
@@ -503,7 +501,7 @@ input[type="file"]:disabled {
     position: absolute;
     z-index: 1000;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    background-color: white;
+    background-color: var(--mantine-color-white);
     border-radius: 8px;
     min-width: 350px;
     max-width: 450px;
@@ -520,11 +518,11 @@ input[type="file"]:disabled {
     font-size: 0.75rem;
     font-weight: bold;
     text-align: center;
-    color: white;
+    color: var(--mantine-color-white);
 }
 
 .role-badge-ADMIN {
-    background-color: #28a745;
+    background-color: var(--mantine-validated-color);
 }
 
 .role-badge-APE {
@@ -532,7 +530,7 @@ input[type="file"]:disabled {
 }
 
 .role-badge-AER {
-    background-color: #dc3545;
+    background-color: var(--mantine-error-color);
 }
 
 .role-badge-STUDENT {
@@ -559,7 +557,7 @@ input[type="file"]:disabled {
 }
 
 .summary-box {
-    background-color: white;
+    background-color: var(--mantine-color-white);
     border-radius: 8px;
     padding: 1rem 1.5rem;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -588,7 +586,6 @@ input[type="file"]:disabled {
     width: 100%;
     padding: 0.5rem;
     border: 1px solid #ccc;
-    border-radius: 4px;
 }
 
 .student-name {
