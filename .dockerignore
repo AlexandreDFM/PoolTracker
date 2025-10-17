@@ -7,9 +7,10 @@ README.md
 docker-compose.yml
 Dockerfile
 .dockerignore
-docker/client/
-docker/server/
+docker/client/Dockerfile
+docker/server/Dockerfile
 # Allow docker/nginx/ and docker/start.sh for production build
+# Allow docker/client/nginx.conf for nginx configuration
 
 # Dependencies
 node_modules

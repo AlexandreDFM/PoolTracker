@@ -3,15 +3,15 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem 2rem;
-    background-color: #0091D3;
-    color: white;
+    background-color: var(--mantine-primary-color);
+    color: var(--mantine-color-white);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .logo a {
     font-size: 1.5rem;
     font-weight: bold;
-    color: white;
+    color: var(--mantine-color-white);
     text-decoration: none;
 }
 
@@ -36,7 +36,7 @@
 }
 
 .nav-links a {
-    color: white;
+    color: var(--mantine-color-white);
     text-decoration: none;
     text-transform: uppercase;
     font-weight: 500;
@@ -62,34 +62,29 @@
 }
 
 .logout-btn {
-    background-color: #FFFC9A;
-    border: 1px solid white;
-    color: #1F485E;
+    background-color: var(--mantine-error-color);
+    border: none;
     padding: 0.5rem 1rem;
-    border-radius: 4px;
+    color: var(--mantine-color-text);
     cursor: pointer;
-    transition: all 0.3s;
 }
 
 .logout-btn:hover {
-    background-color: #FFFDAE;
-    color: #1F485E;
+    background-color: color-mix(in srgb, var(--mantine-error-color) 55%, var(--mantine-error-color-light-hover) 45%);
 }
 
 .auth-links a {
-    background-color: #FFFC9A;
-    color: #1F485E;
+    background-color: var(--mantine-validated-color);
+    color: var(--mantine-color-text);
     text-decoration: none;
     margin-left: 1rem;
     padding: 0.5rem 1rem;
-    border: 1px solid white;
-    border-radius: 4px;
     transition: all 0.3s;
 }
 
 .auth-links a:hover {
-    background-color: #FFFDAE;
-    color: #1F485E;
+    background-color: var(--mantine-validated-secondary-color);
+    color: var(--mantine-color-text);
     text-decoration: none;
 }
 
@@ -102,9 +97,8 @@
 }
 
 .spinner {
-    border: 4px solid rgba(0, 0, 0, 0.1);
     border-radius: 50%;
-    border-top: 4px solid #0091D3;
+    border-top: 4px solid var(--mantine-primary-color);
     width: 40px;
     height: 40px;
     animation: spin 1s linear infinite;

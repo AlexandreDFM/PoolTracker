@@ -14,15 +14,14 @@
  * └────────────────────────────────────────────────────────────────────────────
  */
 
-import React from 'react';
-import { BrowserRouter as Router, useLocation } from 'react-router-dom';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-
-import { AuthProvider } from './contexts/AuthContext';
-import Header from './components/Header';
-import AppRoutes from './Routes';
 import './App.css';
+import React from 'react';
+import AppRoutes from './Routes';
+import Header from './components/Header';
+import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from 'react-toastify';
+import { AuthProvider } from './contexts/AuthContext';
+import { BrowserRouter as Router, useLocation } from 'react-router-dom';
 
 // Component to conditionally render the Header
 const HeaderHandler = () => {
@@ -33,10 +32,61 @@ const HeaderHandler = () => {
 };
 
 function App() {
+    const [isHalloween] = React.useState(false);
+    const [isChristmas] = React.useState(false);
+    const [isDarkMode] = React.useState(false);
+
+    // Determine the Mantine color scheme based on theme priorities
+    const getMantineColorScheme = () => {
+        if (isHalloween && isDarkMode) return 'halloween-dark';
+        if (isHalloween) return 'halloween';
+        if (isChristmas && isDarkMode) return 'christmas-dark';
+        if (isChristmas) return 'christmas';
+        if (isDarkMode) return 'dark';
+        return 'light';
+    };
+
+    // Build className string for backward compatibility
+    const appClasses = [
+        isHalloween ? 'halloween' : '',
+        isChristmas ? 'christmas' : '',
+        isDarkMode ? 'dark-mode' : ''
+    ].filter(Boolean).join(' ');
+
+    const mantineColorScheme = getMantineColorScheme();
+
+    // Apply theme classes to document root and html element dynamically
+    React.useEffect(() => {
+        const rootElement = document.documentElement; // <html> element
+        const bodyElement = document.body;
+
+        // Remove all theme classes first
+        rootElement.classList.remove('halloween', 'christmas', 'dark-mode', 'halloween-dark', 'christmas-dark');
+        bodyElement.classList.remove('halloween', 'christmas', 'dark-mode', 'halloween-dark', 'christmas-dark');
+
+        // Add current theme classes
+        if (appClasses) {
+            const classes = appClasses.split(' ').filter(Boolean);
+            rootElement.classList.add(...classes);
+            bodyElement.classList.add(...classes);
+        }
+
+        // Set data attributes on root element
+        rootElement.setAttribute('data-mantine-color-scheme', mantineColorScheme);
+        rootElement.setAttribute('data-theme', mantineColorScheme);
+        rootElement.setAttribute('data-color-scheme', isDarkMode ? 'dark' : 'light');
+
+        // Cleanup function
+        return () => {
+            rootElement.classList.remove('halloween', 'christmas', 'dark-mode', 'halloween-dark', 'christmas-dark');
+            bodyElement.classList.remove('halloween', 'christmas', 'dark-mode', 'halloween-dark', 'christmas-dark');
+        };
+    }, [isHalloween, isChristmas, isDarkMode, appClasses, mantineColorScheme]);
+
     return (
         <Router>
             <AuthProvider>
-                <div className="app">
+                <div className={`app ${appClasses}`}>
                     <HeaderHandler />
                     <main className="main-content">
                         <AppRoutes />

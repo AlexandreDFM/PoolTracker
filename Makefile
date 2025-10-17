@@ -15,12 +15,15 @@
 ##
 
 PROJECT=pooltracker_prod
+DEV_PROJECT=pooltracker_dev
 
 # Compose files
 COMPOSE_PROD	=	docker-compose.yml
+COMPOSE_DEV		=	docker-compose.dev.yml
 
 # Compose commands
 DC	=	docker-compose -p $(PROJECT) -f docker-compose.yml
+DC_DEV	=	docker-compose -p $(DEV_PROJECT) -f docker-compose.dev.yml
 
 # Colors
 BLUE	=	\033[1;34m
@@ -88,6 +91,47 @@ logs:
 	$(call step,"Showing logs 'press Ctrl+C to exit'...")
 	$(DC) logs -f
 
+# Development
+dev:
+	$(call step,"Starting development environment...")
+	$(DC_DEV) up
+
+dev-build:
+	$(call step,"Building and starting development environment...")
+	$(DC_DEV) up --build
+
+dev-up:
+	$(call step,"Starting development containers in background...")
+	$(DC_DEV) up -d
+	$(call done)
+
+dev-down:
+	$(call step,"Stopping development containers...")
+	$(DC_DEV) down
+	$(call done)
+
+dev-logs:
+	$(call step,"Showing development logs 'press Ctrl+C to exit'...")
+	$(DC_DEV) logs -f
+
+dev-logs-client:
+	$(call step,"Showing client logs...")
+	$(DC_DEV) logs -f client
+
+dev-logs-server:
+	$(call step,"Showing server logs...")
+	$(DC_DEV) logs -f server
+
+dev-restart:
+	$(call step,"Restarting development containers...")
+	$(DC_DEV) restart
+	$(call done)
+
+dev-clean:
+	$(call step,"Cleaning development environment...")
+	$(DC_DEV) down -v
+	$(call done)
+
 # Cleanup
 clean:
 	$(call step,"Removing containers...")
@@ -99,10 +143,23 @@ re: clean all
 help:
 	@echo ""
 	@echo "$(YELLOW)📦 Docker Environment Commands:$(RESET)"
+	@echo ""
+	@echo "$(BLUE)Production:$(RESET)"
 	@echo "  $(GREEN)make build$(RESET)     → Build production images"
-	@echo "  $(GREEN)make up$(RESET)        → Start production containers"
+	@echo "  $(GREEN)make start$(RESET)     → Start production containers"
+	@echo "  $(GREEN)make stop$(RESET)      → Stop production containers"
 	@echo "  $(GREEN)make down$(RESET)      → Stop and remove all containers"
 	@echo "  $(GREEN)make restart$(RESET)   → Restart production containers"
 	@echo "  $(GREEN)make logs$(RESET)      → Show production logs"
 	@echo "  $(GREEN)make clean$(RESET)     → Remove volumes/images/orphans"
+	@echo ""
+	@echo "$(BLUE)Development:$(RESET)"
+	@echo "  $(GREEN)make dev$(RESET)             → Start dev environment (with logs)"
+	@echo "  $(GREEN)make dev-up$(RESET)          → Start dev in background"
+	@echo "  $(GREEN)make dev-down$(RESET)        → Stop dev environment"
+	@echo "  $(GREEN)make dev-logs$(RESET)        → Show all dev logs"
+	@echo "  $(GREEN)make dev-logs-client$(RESET) → Show client logs only"
+	@echo "  $(GREEN)make dev-logs-server$(RESET) → Show server logs only"
+	@echo "  $(GREEN)make dev-restart$(RESET)     → Restart dev containers"
+	@echo "  $(GREEN)make dev-clean$(RESET)       → Clean dev environment"
 	@echo ""
