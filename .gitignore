@@ -36,3 +36,6 @@ coverage/
 
 # Docker MySQL data
 db/
+
+# Kubernetes files
+deploy/kubernetes/production/secret.yaml

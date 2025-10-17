@@ -188,7 +188,7 @@ const StudentQuests = () => {
                                     <input
                                         type="text"
                                         value={code}
-                                        onChange={(e) => setCode(e.target.value.toUpperCase())}
+                                        onChange={(e) => setCode(e.target.value)}
                                         placeholder="Enter secret code"
                                         className="code-input"
                                         disabled={submitting}
