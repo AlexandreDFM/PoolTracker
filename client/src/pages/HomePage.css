@@ -125,6 +125,26 @@
     .teams-grid {
         grid-template-columns: 1fr;
     }
+
+    .home-container {
+        padding: 1rem;
+    }
+
+    .home-container h1 {
+        font-size: 1.5rem;
+    }
+
+    .teams-section h2 {
+        font-size: 1.25rem;
+    }
+
+    .team-card {
+        padding: 1rem;
+    }
+
+    .view-details-btn {
+        font-size: 0.9rem;
+    }
 }
 
 .team-color-red {

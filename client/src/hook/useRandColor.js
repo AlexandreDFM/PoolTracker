@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-const COLORS = ['pink', 'purple', 'orange'];
+const COLORS = ['pink', 'orange', 'green'];
 
 const randColor = () => COLORS[Math.floor(Math.random() * COLORS.length)];
 

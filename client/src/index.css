@@ -439,6 +439,42 @@
     --header-logo-fill: var(--mantine-color-white);
 }
 
+/* Mobile-first utilities */
+html, body {
+  -webkit-font-smoothing: var(--mantine-webkit-font-smoothing);
+  -moz-osx-font-smoothing: var(--mantine-moz-font-smoothing);
+  font-family: var(--mantine-font-family);
+  margin: 0;
+  padding: 0;
+}
+
+/* Base responsive container */
+.container {
+  width: 100%;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (min-width: 48em) {
+  .container {
+    max-width: 720px;
+  }
+}
+
+@media (min-width: 62em) {
+  .container {
+    max-width: 960px;
+  }
+}
+
+@media (min-width: 75em) {
+  .container {
+    max-width: 1140px;
+  }
+}
+
 :root[data-theme=dark] {
     --mantine-color-scheme: dark;
     --mantine-primary-color-contrast: var(--mantine-color-white);

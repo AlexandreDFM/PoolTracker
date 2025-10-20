@@ -23,12 +23,12 @@ import useRandColor from '../../hook/useRandColor';
 const AdminQuests = () => {
     const [color] = useRandColor();
     const [quests, setQuests] = useState([]);
-    const [statistics, setStatistics] = useState(null);
-    const [config, setConfig] = useState({ assignmentHour: 10, durationHours: 24 });
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
+    const [statistics, setStatistics] = useState(null);
     const [showConfig, setShowConfig] = useState(false);
     const [selectedTab, setSelectedTab] = useState('quests');
+    const [config, setConfig] = useState({ assignmentHour: 10, durationHours: 24 });
 
     const [formData, setFormData] = useState({
         id: null,
