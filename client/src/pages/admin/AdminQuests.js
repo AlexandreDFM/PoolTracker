@@ -14,19 +14,21 @@
  * └────────────────────────────────────────────────────────────────────────────
  */
 
-import React, { useState, useEffect } from 'react';
-import { questService } from '../../services/api';
-import { toast } from 'react-toastify';
 import './AdminPages.css';
+import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
+import { questService } from '../../services/api';
+import useRandColor from '../../hook/useRandColor';
 
 const AdminQuests = () => {
+    const [color] = useRandColor();
     const [quests, setQuests] = useState([]);
-    const [statistics, setStatistics] = useState(null);
-    const [config, setConfig] = useState({ assignmentHour: 10, durationHours: 24 });
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
+    const [statistics, setStatistics] = useState(null);
     const [showConfig, setShowConfig] = useState(false);
     const [selectedTab, setSelectedTab] = useState('quests');
+    const [config, setConfig] = useState({ assignmentHour: 10, durationHours: 24 });
 
     const [formData, setFormData] = useState({
         id: null,
@@ -212,7 +214,9 @@ const AdminQuests = () => {
     return (
         <div className="admin-container">
             <div className="admin-header">
-                <h1>Quests Management</h1>
+                <h1>Quests Management
+                    <span style={{ color: `var(--mantine-color-${color}-7)` }}>_</span>
+                </h1>
                 <div className="admin-controls">
                     <div className="tab-buttons">
                         <button

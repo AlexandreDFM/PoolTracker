@@ -14,9 +14,8 @@
  * └────────────────────────────────────────────────────────────────────────────
  */
 
-import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { Navigate, useLocation } from 'react-router-dom';
 
 // Component for protected routes (requiring authentication)
 const ProtectedRoute = ({ children, adminOnly = false }) => {

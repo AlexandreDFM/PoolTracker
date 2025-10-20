@@ -14,18 +14,20 @@
  * └────────────────────────────────────────────────────────────────────────────
  */
 
-import React, { useState, useEffect } from 'react';
-import { pointService } from '../../services/api';
-import { toast } from 'react-toastify';
 import './AdminPages.css';
+import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
+import { pointService } from '../../services/api';
+import useRandColor from '../../hook/useRandColor';
 
 const AdminHistory = () => {
+    const [color] = useRandColor();
+    const [itemsPerPage] = useState(20);
     const [history, setHistory] = useState([]);
+    const [filter, setFilter] = useState('all');
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState('all'); // 'all', 'positive', 'negative'
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage] = useState(20);
 
     useEffect(() => {
         fetchPointsHistory();
@@ -108,7 +110,10 @@ const AdminHistory = () => {
     return (
         <div className="admin-container">
             <div className="admin-header">
-                <h1>Points History</h1>
+                <h1>Points History
+                    <span style={{ color: `var(--mantine-color-${color}-7)` }}>_</span>
+
+                </h1>
                 <div className="admin-controls">
                     <select
                         value={filter}

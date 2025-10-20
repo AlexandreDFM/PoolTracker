@@ -14,12 +14,14 @@
  * └────────────────────────────────────────────────────────────────────────────
  */
 
-import React, { useState, useEffect } from 'react';
-import { questService } from '../services/api';
-import { toast } from 'react-toastify';
 import './StudentQuests.css';
+import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
+import { questService } from '../services/api';
+import useRandColor from '../hook/useRandColor';
 
 const StudentQuests = () => {
+    const [color] = useRandColor();
     const [dailyQuest, setDailyQuest] = useState(null);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -136,6 +138,7 @@ const StudentQuests = () => {
             <div className="quest-header">
                 <h1>Daily Quest</h1>
                 <p className="quest-date">{formatDate(new Date())}</p>
+                <span style={{ color: `var(--mantine-color-${color}-7)` }}>_</span>
             </div>
 
             {dailyQuest ? (

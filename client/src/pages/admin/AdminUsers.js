@@ -14,18 +14,20 @@
  * └────────────────────────────────────────────────────────────────────────────
  */
 
-import React, { useState, useEffect } from 'react';
-import { userService } from '../../services/api';
-import { useAuth } from '../../contexts/AuthContext';
-import { toast } from 'react-toastify';
 import './AdminPages.css';
+import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
+import { userService } from '../../services/api';
+import useRandColor from '../../hook/useRandColor';
+import { useAuth } from '../../contexts/AuthContext';
 
 const AdminUsers = () => {
     const { isAdmin } = useAuth();
+    const [color] = useRandColor();
     const [users, setUsers] = useState([]);
-    const [selectedUserType, setSelectedUserType] = useState('all');
     const [loading, setLoading] = useState(true);
     const [showPopup, setShowPopup] = useState(false);
+    const [selectedUserType, setSelectedUserType] = useState('all');
     const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
 
     const [formData, setFormData] = useState({
@@ -145,6 +147,8 @@ const AdminUsers = () => {
                         case 'STUDENT':
                             await userService.updateStudent(formData.id, userData);
                             break;
+                        default:
+                            throw new Error('Invalid user role');
                     }
                     toast.success('User updated successfully');
                 }
@@ -163,6 +167,8 @@ const AdminUsers = () => {
                     case 'STUDENT':
                         await userService.createStudent(userData);
                         break;
+                    default:
+                        throw new Error('Invalid user role');
                 }
                 toast.success('User created successfully');
             }
@@ -215,6 +221,8 @@ const AdminUsers = () => {
                 case 'STUDENT':
                     await userService.deleteStudent(user.id);
                     break;
+                default:
+                    throw new Error('Invalid user role');
             }
 
             toast.success('User deleted successfully');
@@ -270,7 +278,10 @@ const AdminUsers = () => {
     return (
         <div className="admin-container">
             <div className="admin-header">
-                <h1>User Management</h1>
+                <h1>
+                    User Management
+                    <span style={{ color: `var(--mantine-color-${color}-7)` }}>_</span>
+                </h1>
                 <div className="admin-controls">
                     <select
                         value={selectedUserType}

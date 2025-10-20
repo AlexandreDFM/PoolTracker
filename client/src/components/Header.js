@@ -14,10 +14,10 @@
  * └────────────────────────────────────────────────────────────────────────────
  */
 
-import React from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
 import "./Header.css";
+import { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { Link, useNavigate } from "react-router-dom";
 
 const Header = () => {
     const {
@@ -31,13 +31,9 @@ const Header = () => {
         logout,
     } = useAuth();
     const navigate = useNavigate();
+    const [isOpen, setIsOpen] = useState(false);
+    const isMobile = window.innerWidth <= 768;
 
-    const handleLogout = () => {
-        logout();
-        navigate("/login");
-    };
-
-    // Helper function to get role display name
     const getRoleDisplay = () => {
         if (isAdmin) return "Admin";
         if (isAPE) return "APE";
@@ -45,99 +41,398 @@ const Header = () => {
         return "Student";
     };
 
+    const handleLogout = () => {
+        logout();
+        navigate("/login");
+        setIsOpen(false);
+    };
+
+    const handleNavClick = () => {
+        setIsOpen(false);
+    };
+
+    const initials = `${user?.firstName?.[0] ?? ""}${
+        user?.lastName?.[0] ?? ""
+    }`.toUpperCase();
+
+    const handleLogin = () => {
+        navigate("/login");
+        setIsOpen(false);
+    };
+
     return (
         <header className="header">
-            <div className="logo">
-                <Link to="/">
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="150"
-                        height="36"
-                        viewBox="0 0 165 42"
-                        style={{ display: 'inline-block', verticalAlign: 'middle' }}
-                    >
-                        <g transform="translate(0 0) scale(0.92)">
+            <div className="header-top">
+                {/* Left: Hamburger button */}
+                <button
+                    className={`hamburger ${isOpen ? "open" : ""}`}
+                    aria-label="Toggle navigation"
+                    onClick={() => setIsOpen((v) => !v)}
+                >
+                    {isOpen ? (
+                        <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 18 18"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
                             <path
-                                d="M4.281,41.205V25.387c0-1.5-.987-2.536-2.668-3.05A6.328,6.328,0,0,0,0,22.051c2.525-.092,4.281-1.407,4.281-3.33V2.9C4.281,1.065,6.105-.01,9.61,0L13.53.008V1.465l-.768,0c-3.43-.009-4.13.551-4.13,2.9V18.486c0,1.924-1.968,3.379-4.628,3.565,2.66.188,4.628,1.643,4.628,3.567V39.743c0,2.349.633,2.907,4.13,2.9l.768,0v1.453L9.61,44.1H9.544C6.082,44.1,4.281,43.028,4.281,41.205Zm163.757,2.9-3.92-.01V42.639l.768,0c3.5.008,4.131-.551,4.131-2.9V25.618c0-1.924,1.967-3.379,4.628-3.567-2.661-.186-4.628-1.641-4.628-3.565V4.365c0-2.352-.7-2.912-4.131-2.9l-.768,0V.007L168.038,0c3.5-.01,5.329,1.065,5.329,2.894V18.721c0,1.923,1.757,3.238,4.282,3.33a6.323,6.323,0,0,0-1.613.285c-1.681.515-2.668,1.546-2.668,3.05V41.205c0,1.823-1.8,2.9-5.266,2.9Zm-14.125-8.751V24.8H143.382V35.351h-5.649V8.751h5.649v10.39h10.531V8.751h5.649v26.6Zm-27.306,0q-12.107,0-12.105-13.259V21.97q.121-13.221,12.144-13.219h9.211V14.41H125.516a4.652,4.652,0,0,0-4.035,1.839q-1.33,1.841-1.332,5.883v.323q0,7.239,5.326,7.238h10.341v5.659Zm-26.628,0a10.308,10.308,0,0,1-4.014-.688A7.248,7.248,0,0,1,93.3,32.824a7.077,7.077,0,0,1-1.494-2.605,9.809,9.809,0,0,1-.464-2.994,9.218,9.218,0,0,1,.142-1.557,5.947,5.947,0,0,1,.484-1.556,4.833,4.833,0,0,1,.887-1.293,3.391,3.391,0,0,1,1.351-.849,4.234,4.234,0,0,1-2.217-2.283,9.633,9.633,0,0,1-.606-3.58,6.808,6.808,0,0,1,2.22-5.438,9.461,9.461,0,0,1,6.375-1.918h13.234V14.41H99.292a2.117,2.117,0,0,0-1.594.707,2.478,2.478,0,0,0-.04,3.336,2.154,2.154,0,0,0,1.674.688h13.88V24.8H99.292a2.117,2.117,0,0,0-1.594.707,2.475,2.475,0,0,0-.665,1.76,2.411,2.411,0,0,0,.665,1.717,2.161,2.161,0,0,0,1.635.707h13.88v5.659Zm-21.558,0V14.41H72.166V8.751H89.959V14.41H84.068V35.351Zm-13.814,0V8.751h5.649v26.6Zm-23.384,0V27.145a7.591,7.591,0,0,1,2.28-5.964,9.077,9.077,0,0,1,6.275-2.04H55.1a2.189,2.189,0,0,0,1.633-.688,2.3,2.3,0,0,0,.665-1.658,2.369,2.369,0,0,0-.665-1.678,2.118,2.118,0,0,0-1.595-.707H41.222V8.751H54.456A10.577,10.577,0,0,1,58.35,9.4a7.468,7.468,0,0,1,2.683,1.74,6.63,6.63,0,0,1,1.533,2.547,9.634,9.634,0,0,1,.485,3.073,9.47,9.47,0,0,1-.465,2.931,6.934,6.934,0,0,1-1.492,2.566,7.626,7.626,0,0,1-2.663,1.839,10.006,10.006,0,0,1-3.975.708H49.011a1.912,1.912,0,0,0-1.533.727,2.58,2.58,0,0,0-.606,1.7v8.126Zm-14.5,0a10.3,10.3,0,0,1-4.014-.688,7.245,7.245,0,0,1-2.663-1.839,7.087,7.087,0,0,1-1.494-2.605,9.808,9.808,0,0,1-.463-2.994,9.212,9.212,0,0,1,.141-1.557,5.948,5.948,0,0,1,.484-1.556,4.836,4.836,0,0,1,.887-1.293,3.381,3.381,0,0,1,1.351-.849,4.235,4.235,0,0,1-2.218-2.283,9.633,9.633,0,0,1-.606-3.58,6.808,6.808,0,0,1,2.22-5.438A9.459,9.459,0,0,1,26.72,8.751H39.954V14.41H26.034a2.119,2.119,0,0,0-1.595.707,2.48,2.48,0,0,0-.04,3.336,2.154,2.154,0,0,0,1.675.688H39.954V24.8H26.034a2.119,2.119,0,0,0-1.595.707,2.478,2.478,0,0,0-.665,1.76,2.413,2.413,0,0,0,.665,1.717,2.163,2.163,0,0,0,1.636.707H39.954v5.659Z"
-                                fill="var(--header-logo-fill, #fff)"
-                            ></path>
-                        </g>
-                    </svg>
-                    <br />
-                    <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        Pool Tracker
-                    </p>
-                </Link>
-            </div>
+                                d="M2 2L16 16M16 2L2 16"
+                                stroke="white"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                            />
+                        </svg>
+                    ) : (
+                        <svg
+                            width="18"
+                            height="12"
+                            viewBox="0 0 18 12"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <rect width="18" height="2" rx="1" fill="white" />
+                            <rect
+                                y="5"
+                                width="18"
+                                height="2"
+                                rx="1"
+                                fill="white"
+                            />
+                            <rect
+                                y="10"
+                                width="18"
+                                height="2"
+                                rx="1"
+                                fill="white"
+                            />
+                        </svg>
+                    )}
+                </button>
 
-            {isAuthenticated ? (
-                <nav className="nav">
-                    <ul className="nav-links">
+                {/* Center: Logo */}
+                <div className="logo">
+                    <Link to="/">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="150"
+                            height="36"
+                            viewBox="0 0 165 42"
+                            style={{
+                                display: "inline-block",
+                                verticalAlign: "middle",
+                            }}
+                        >
+                            <g transform="translate(0 0) scale(0.92)">
+                                <path
+                                    d="M4.281,41.205V25.387c0-1.5-.987-2.536-2.668-3.05A6.328,6.328,0,0,0,0,22.051c2.525-.092,4.281-1.407,4.281-3.33V2.9C4.281,1.065,6.105-.01,9.61,0L13.53.008V1.465l-.768,0c-3.43-.009-4.13.551-4.13,2.9V18.486c0,1.924-1.968,3.379-4.628,3.565,2.66.188,4.628,1.643,4.628,3.567V39.743c0,2.349.633,2.907,4.13,2.9l.768,0v1.453L9.61,44.1H9.544C6.082,44.1,4.281,43.028,4.281,41.205Zm163.757,2.9-3.92-.01V42.639l.768,0c3.5.008,4.131-.551,4.131-2.9V25.618c0-1.924,1.967-3.379,4.628-3.567-2.661-.186-4.628-1.641-4.628-3.565V4.365c0-2.352-.7-2.912-4.131-2.9l-.768,0V.007L168.038,0c3.5-.01,5.329,1.065,5.329,2.894V18.721c0,1.923,1.757,3.238,4.282,3.33a6.323,6.323,0,0,0-1.613.285c-1.681.515-2.668,1.546-2.668,3.05V41.205c0,1.823-1.8,2.9-5.266,2.9Zm-14.125-8.751V24.8H143.382V35.351h-5.649V8.751h5.649v10.39h10.531V8.751h5.649v26.6Zm-27.306,0q-12.107,0-12.105-13.259V21.97q.121-13.221,12.144-13.219h9.211V14.41H125.516a4.652,4.652,0,0,0-4.035,1.839q-1.33,1.841-1.332,5.883v.323q0,7.239,5.326,7.238h10.341v5.659Zm-26.628,0a10.308,10.308,0,0,1-4.014-.688A7.248,7.248,0,0,1,93.3,32.824a7.077,7.077,0,0,1-1.494-2.605,9.809,9.809,0,0,1-.464-2.994,9.218,9.218,0,0,1,.142-1.557,5.947,5.947,0,0,1,.484-1.556,4.833,4.833,0,0,1,.887-1.293,3.391,3.391,0,0,1,1.351-.849,4.234,4.234,0,0,1-2.217-2.283,9.633,9.633,0,0,1-.606-3.58,6.808,6.808,0,0,1,2.22-5.438,9.461,9.461,0,0,1,6.375-1.918h13.234V14.41H99.292a2.117,2.117,0,0,0-1.594.707,2.478,2.478,0,0,0-.04,3.336,2.154,2.154,0,0,0,1.674.688h13.88V24.8H99.292a2.117,2.117,0,0,0-1.594.707,2.475,2.475,0,0,0-.665,1.76,2.411,2.411,0,0,0,.665,1.717,2.161,2.161,0,0,0,1.635.707h13.88v5.659Zm-21.558,0V14.41H72.166V8.751H89.959V14.41H84.068V35.351Zm-13.814,0V8.751h5.649v26.6Zm-23.384,0V27.145a7.591,7.591,0,0,1,2.28-5.964,9.077,9.077,0,0,1,6.275-2.04H55.1a2.189,2.189,0,0,0,1.633-.688,2.3,2.3,0,0,0,.665-1.658,2.369,2.369,0,0,0-.665-1.678,2.118,2.118,0,0,0-1.595-.707H41.222V8.751H54.456A10.577,10.577,0,0,1,58.35,9.4a7.468,7.468,0,0,1,2.683,1.74,6.63,6.63,0,0,1,1.533,2.547,9.634,9.634,0,0,1,.485,3.073,9.47,9.47,0,0,1-.465,2.931,6.934,6.934,0,0,1-1.492,2.566,7.626,7.626,0,0,1-2.663,1.839,10.006,10.006,0,0,1-3.975.708H49.011a1.912,1.912,0,0,0-1.533.727,2.58,2.58,0,0,0-.606,1.7v8.126Zm-14.5,0a10.3,10.3,0,0,1-4.014-.688,7.245,7.245,0,0,1-2.663-1.839,7.087,7.087,0,0,1-1.494-2.605,9.808,9.808,0,0,1-.463-2.994,9.212,9.212,0,0,1,.141-1.557,5.948,5.948,0,0,1,.484-1.556,4.836,4.836,0,0,1,.887-1.293,3.381,3.381,0,0,1,1.351-.849,4.235,4.235,0,0,1-2.218-2.283,9.633,9.633,0,0,1-.606-3.58,6.808,6.808,0,0,1,2.22-5.438A9.459,9.459,0,0,1,26.72,8.751H39.954V14.41H26.034a2.119,2.119,0,0,0-1.595.707,2.48,2.48,0,0,0-.04,3.336,2.154,2.154,0,0,0,1.675.688H39.954V24.8H26.034a2.119,2.119,0,0,0-1.595.707,2.478,2.478,0,0,0-.665,1.76,2.413,2.413,0,0,0,.665,1.717,2.163,2.163,0,0,0,1.636.707H39.954v5.659Z"
+                                    fill="var(--header-logo-fill, #fff)"
+                                ></path>
+                            </g>
+                        </svg>
+                        <p
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                            }}
+                        >
+                            Pool Tracker
+                        </p>
+                    </Link>
+                </div>
+
+                {/* Desktop: Navigation links (hidden on mobile) */}
+                {isAuthenticated && (
+                    <nav className="nav-desktop">
+                        <ul className="nav-links-desktop">
+                            <li>
+                                <Link to="/" onClick={handleNavClick}>
+                                    Home
+                                </Link>
+                            </li>
+
+                            {/* Quest link for students */}
+                            {!isAdmin && !isAPE && !isAER ? (
+                                <li>
+                                    <Link to="/quests" onClick={handleNavClick}>
+                                        Daily Quest
+                                    </Link>
+                                </li>
+                            ) : null}
+
+                            {isAdmin && (
+                                <li>
+                                    <Link
+                                        to="/dashboard"
+                                        onClick={handleNavClick}
+                                    >
+                                        Dashboard
+                                    </Link>
+                                </li>
+                            )}
+                            {hasAdminPrivileges ? (
+                                <>
+                                    <li>
+                                        <Link
+                                            to="/admin/users"
+                                            onClick={handleNavClick}
+                                        >
+                                            Users
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link
+                                            to="/admin/students"
+                                            onClick={handleNavClick}
+                                        >
+                                            Students
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link
+                                            to="/admin/teams"
+                                            onClick={handleNavClick}
+                                        >
+                                            Teams
+                                        </Link>
+                                    </li>
+                                </>
+                            ) : null}
+                            {canManagePoints && (
+                                <>
+                                    <li>
+                                        <Link
+                                            to="/admin/quests"
+                                            onClick={handleNavClick}
+                                        >
+                                            Quests
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link
+                                            to="/admin/history"
+                                            onClick={handleNavClick}
+                                        >
+                                            History
+                                        </Link>
+                                    </li>
+                                </>
+                            )}
+
+                            {canManagePoints ? (
+                                <li>
+                                    <Link
+                                        to="/admin/points"
+                                        onClick={handleNavClick}
+                                    >
+                                        Points
+                                    </Link>
+                                </li>
+                            ) : (
+                                <li>
+                                    <Link
+                                        to="/profile"
+                                        onClick={handleNavClick}
+                                    >
+                                        My Profile
+                                    </Link>
+                                </li>
+                            )}
+                        </ul>
+                    </nav>
+                )}
+
+                {/* Right: User actions (avatar + logout/login) */}
+                <div className="user-actions">
+                    {isAuthenticated ? (
+                        <>
+                            {isMobile ? (
+                                <>
+                                    <div
+                                        className="mobile-avatar"
+                                        title={`${user.firstName} ${user.lastName}`}
+                                        style={{
+                                            width: 36,
+                                            height: 36,
+                                            borderRadius: "50%",
+                                            backgroundColor:
+                                                "var(--avatar-bg, #ddd)",
+                                            color: "var(--avatar-color, #111)",
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            fontWeight: 600,
+                                            userSelect: "none",
+                                        }}
+                                    >
+                                        {initials || "?"}
+                                    </div>
+                                    <button
+                                        className="logout-btn"
+                                        onClick={handleLogout}
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="18"
+                                            height="18"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        >
+                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                            <polyline points="16 17 21 12 16 7" />
+                                            <line
+                                                x1="21"
+                                                y1="12"
+                                                x2="9"
+                                                y2="12"
+                                            />
+                                        </svg>
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="user-info-desktop">
+                                        <span>
+                                            {user.firstName} {user.lastName} (
+                                            {getRoleDisplay()})
+                                        </span>
+                                        <button
+                                            className="logout-btn-desktop"
+                                            onClick={handleLogout}
+                                        >
+                                            Logout
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </>
+                    ) : (
+                        <button
+                            className="auth-btn"
+                            onClick={handleLogin}
+                            aria-label="Login"
+                        >
+                            <div
+                                className="mobile-avatar"
+                                title="Guest"
+                                style={{
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: "50%",
+                                    backgroundColor: "var(--avatar-bg, #ddd)",
+                                    color: "var(--avatar-color, #111)",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontWeight: 600,
+                                    userSelect: "none",
+                                }}
+                            >
+                                ?
+                            </div>
+                        </button>
+                    )}
+                </div>
+            </div>
+            {/* Mobile: Navigation menu - appears below header-top when open */}
+            {isAuthenticated && (
+                <nav className={`nav ${isOpen ? "nav-open" : "nav-closed"}`}>
+                    <ul className={`nav-links`}>
                         <li>
-                            <Link to="/">Home</Link>
+                            <Link to="/" onClick={handleNavClick}>
+                                Home
+                            </Link>
                         </li>
 
                         {/* Quest link for students */}
                         {!isAdmin && !isAPE && !isAER ? (
                             <li>
-                                <Link to="/quests">Daily Quest</Link>
+                                <Link to="/quests" onClick={handleNavClick}>
+                                    Daily Quest
+                                </Link>
                             </li>
                         ) : null}
 
                         {isAdmin && (
                             <li>
-                                <Link to="/dashboard">Dashboard</Link>
+                                <Link to="/dashboard" onClick={handleNavClick}>
+                                    Dashboard
+                                </Link>
                             </li>
                         )}
                         {hasAdminPrivileges ? (
                             <>
                                 <li>
-                                    <Link to="/admin/users">Users</Link>
+                                    <Link
+                                        to="/admin/users"
+                                        onClick={handleNavClick}
+                                    >
+                                        Users
+                                    </Link>
                                 </li>
                                 <li>
-                                    <Link to="/admin/students">Students</Link>
+                                    <Link
+                                        to="/admin/students"
+                                        onClick={handleNavClick}
+                                    >
+                                        Students
+                                    </Link>
                                 </li>
                                 <li>
-                                    <Link to="/admin/teams">Teams</Link>
+                                    <Link
+                                        to="/admin/teams"
+                                        onClick={handleNavClick}
+                                    >
+                                        Teams
+                                    </Link>
                                 </li>
                             </>
                         ) : null}
                         {canManagePoints && (
                             <>
                                 <li>
-                                    <Link to="/admin/quests">Quests</Link>
+                                    <Link
+                                        to="/admin/quests"
+                                        onClick={handleNavClick}
+                                    >
+                                        Quests
+                                    </Link>
                                 </li>
                                 <li>
-                                    <Link to="/admin/history">History</Link>
+                                    <Link
+                                        to="/admin/history"
+                                        onClick={handleNavClick}
+                                    >
+                                        History
+                                    </Link>
                                 </li>
                             </>
                         )}
 
                         {canManagePoints ? (
                             <li>
-                                <Link to="/admin/points">Points</Link>
+                                <Link
+                                    to="/admin/points"
+                                    onClick={handleNavClick}
+                                >
+                                    Points
+                                </Link>
                             </li>
                         ) : (
                             <li>
-                                <Link to="/profile">My Profile</Link>
+                                <Link to="/profile" onClick={handleNavClick}>
+                                    My Profile
+                                </Link>
                             </li>
                         )}
                     </ul>
-
-                    <div className="user-info">
-                        <span>
-                            {user.firstName} {user.lastName} ({getRoleDisplay()}
-                            )
-                        </span>
-                        <button className="logout-btn" onClick={handleLogout}>
-                            Logout
-                        </button>
-                    </div>
                 </nav>
-            ) : (
-                <div className="auth-links">
-                    <Link to="/login">Login</Link>
-                </div>
             )}
         </header>
     );

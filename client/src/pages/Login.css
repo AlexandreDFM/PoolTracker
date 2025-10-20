@@ -12,13 +12,15 @@
     max-width: 400px;
     padding: 2rem;
     background-color: var(--mantine-color-white);
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--mantine-color-gray-3);
 }
 
 .login-card h2 {
     margin-bottom: 1.5rem;
     text-align: center;
+    font-family: 'Anton', sans-serif;
+    text-transform: uppercase;
+    font-weight: 400;
     color: var(--mantine-primary-color);
 }
 
@@ -35,9 +37,8 @@
 .form-group input {
     width: 100%;
     padding: 0.75rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
     font-size: 1rem;
+    border: 1px solid var(--mantine-color-gray-3);
 }
 
 .btn-login {
@@ -54,7 +55,7 @@
 }
 
 .btn-login:hover {
-    background-color: #33A7DC;
+    background-color: var(--mantine-primary-color-hover);
 }
 
 .btn-login:disabled {
@@ -76,4 +77,24 @@
 .first-login-toggle input[type="checkbox"] {
     margin-right: 0.5rem;
     width: auto;
+}
+
+/* Mobile responsive */
+@media (max-width: 767px) {
+    .login-container {
+        padding: 1rem;
+        min-height: calc(100vh - 120px);
+    }
+
+    .login-card {
+        padding: 1.5rem;
+    }
+
+    .login-card h2 {
+        font-size: 1.5rem;
+    }
+
+    .form-group input {
+        font-size: 16px; /* prevents zoom on iOS */
+    }
 }

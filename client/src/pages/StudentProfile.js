@@ -14,17 +14,19 @@
  * └────────────────────────────────────────────────────────────────────────────
  */
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { pointService } from '../services/api';
-import { toast } from 'react-toastify';
 import './StudentProfile.css';
+import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
+import { pointService } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
+import useRandColor from '../hook/useRandColor';
 
 const StudentProfile = () => {
     const { user } = useAuth();
-    const [pointsHistory, setPointsHistory] = useState([]);
-    const [totalPoints, setTotalPoints] = useState(0);
+    const [color] = useRandColor();
     const [loading, setLoading] = useState(true);
+    const [totalPoints, setTotalPoints] = useState(0);
+    const [pointsHistory, setPointsHistory] = useState([]);
 
     useEffect(() => {
         const fetchPointsData = async () => {
@@ -69,11 +71,15 @@ const StudentProfile = () => {
     return (
         <div className="profile-container">
             <div className="profile-header">
-                <h1>My Profile</h1>
+                <h1>
+                    My Profile
+                    <span style={{ color: `var(--mantine-color-${color}-7)` }}>_</span>
+                </h1>
                 <div className="user-card">
-                    <div className="user-info">
-                        <h2>{user.firstName} {user.lastName}</h2>
-                        <p>{user.email}</p>
+                    <div>
+                        <h2 className="user-info" >{user.firstName} {user.lastName}</h2>
+                        <br />
+                        <p className="user-info">{user.email}</p>
                     </div>
                     <div className="points-display">
                         <span className="points-value">{totalPoints}</span>
