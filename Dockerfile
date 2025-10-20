@@ -35,7 +35,7 @@ COPY server/ ./
 # Stage 3: Final production image
 FROM node:18-alpine AS production
 
-# Install nginx and curl to serve static files
+# Install nginx and curl for serving static files and health checks
 RUN apk add --no-cache nginx curl
 
 # Create app directory
@@ -57,11 +57,9 @@ COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
 # Copy and set up startup script
 COPY docker/start.sh /app/start.sh
 
-# Create SSL directories and set permissions
-RUN mkdir -p /etc/ssl/certs /etc/ssl/private /etc/ssl/config && \
-    chown -R nginx:nginx /etc/ssl && \
-    chmod 755 /etc/ssl/certs /etc/ssl/config && \
-    chmod 700 /etc/ssl/private
+# Create required directories and set permissions
+RUN mkdir -p /var/lib/nginx/tmp /var/log/nginx && \
+    chown -R nginx:nginx /var/lib/nginx /var/log/nginx /usr/share/nginx/html
 
 # Make startup script executable
 RUN chmod +x /app/start.sh
@@ -70,12 +68,12 @@ RUN chmod +x /app/start.sh
 ENV NODE_ENV=production
 ENV PORT=3001
 
-# Expose ports
+# Expose ports (HTTP only - SSL handled by Kubernetes Ingress)
 EXPOSE 80 3001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost/ || exit 1
+  CMD curl -f http://localhost/health || exit 1
 
 # Start the application
 CMD ["/app/start.sh"]
