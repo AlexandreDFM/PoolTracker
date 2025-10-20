@@ -27,24 +27,6 @@ on:
     push:
         branches:
             - main
-        tags:
-            - 'v*.*.*'
-
-    # Manual trigger
-    workflow_dispatch:
-        inputs:
-            environment:
-                description: 'Environment to deploy to'
-                required: true
-                default: 'production'
-                type: choice
-                options:
-                    - production
-                    - staging
-            force_redeploy:
-                description: 'Force complete redeployment'
-                type: boolean
-                default: false
 
 jobs:
     # Build and push Docker image
@@ -106,7 +88,6 @@ jobs:
         name: Deploy to Production Kubernetes
         runs-on: ubuntu-latest
         needs: build
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/deploy-prod' || startsWith(github.ref, 'refs/tags/v')
         environment:
             name: production
             url: https://pool.nice-tek.eu
@@ -257,9 +238,14 @@ jobs:
                       deploy/kubernetes/production/service.yaml
                       deploy/kubernetes/production/ingress.yaml
                   images: |
-                      ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.image_tag }}
+                      ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
                   imagepullsecrets: |
                       github-container-registry
+
+            - name: Wait for Rollout
+              run: |
+                  # Wait for the deployment to roll out
+                  kubectl rollout status deployment/pool-tracker-deployment-prod -n pool-tracker-prod --timeout=600s
 
             - name: Request Let's Encrypt Certificate
               run: |
