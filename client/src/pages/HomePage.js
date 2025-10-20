@@ -14,16 +14,18 @@
  * └────────────────────────────────────────────────────────────────────────────
  */
 
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { teamService } from '../services/api';
-import { toast } from 'react-toastify';
 import './HomePage.css';
+import { toast } from 'react-toastify';
+import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { teamService } from '../services/api';
+import useRandColor from '../hook/useRandColor';
 
 const HomePage = () => {
+    const [color] = useRandColor();
     const [teams, setTeams] = useState([]);
-    const [topStudentsByTeam, setTopStudentsByTeam] = useState({});
     const [loading, setLoading] = useState(true);
+    const [topStudentsByTeam, setTopStudentsByTeam] = useState({});
 
     // Load teams with their points
     useEffect(() => {
@@ -62,7 +64,9 @@ const HomePage = () => {
 
     return (
         <div className="home-container">
-            <h1>Pool Tracker - Score Board</h1>
+            <h1>Pool Tracker - Score Board
+                <span style={{ color: `var(--mantine-color-${color}-7)` }}>_</span>
+            </h1>
 
             <section className="teams-section">
                 <h2>Team Rankings</h2>

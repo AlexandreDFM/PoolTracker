@@ -15,9 +15,9 @@
  */
 
 import './App.css';
-import React from 'react';
 import AppRoutes from './Routes';
 import Header from './components/Header';
+import { useEffect, useState } from 'react';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
 import { AuthProvider } from './contexts/AuthContext';
@@ -32,9 +32,9 @@ const HeaderHandler = () => {
 };
 
 function App() {
-    const [isHalloween] = React.useState(false);
-    const [isChristmas] = React.useState(false);
-    const [isDarkMode] = React.useState(false);
+    const [isDarkMode] = useState(false);
+    const [isHalloween] = useState(false);
+    const [isChristmas] = useState(false);
 
     // Determine the Mantine color scheme based on theme priorities
     const getMantineColorScheme = () => {
@@ -56,7 +56,7 @@ function App() {
     const mantineColorScheme = getMantineColorScheme();
 
     // Apply theme classes to document root and html element dynamically
-    React.useEffect(() => {
+    useEffect(() => {
         const rootElement = document.documentElement; // <html> element
         const bodyElement = document.body;
 

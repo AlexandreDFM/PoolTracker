@@ -14,12 +14,14 @@
  * └────────────────────────────────────────────────────────────────────────────
  */
 
-import React, { useState, useEffect } from 'react';
-import { teamService } from '../../services/api';
-import { toast } from 'react-toastify';
 import './AdminPages.css';
+import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
+import { teamService } from '../../services/api';
+import useRandColor from '../../hook/useRandColor';
 
 const AdminTeams = () => {
+    const [color] = useRandColor();
     const [teams, setTeams] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedTeam, setSelectedTeam] = useState(null);
@@ -210,7 +212,9 @@ const AdminTeams = () => {
     return (
         <div className="admin-container">
             <div className="admin-header">
-                <h1>Teams Management</h1>
+                <h1>Teams Management
+                    <span style={{ color: `var(--mantine-color-${color}-7)` }}>_</span>
+                </h1>
                 <button className="btn-add" onClick={handleAddTeam}>
                     Add a team
                 </button>

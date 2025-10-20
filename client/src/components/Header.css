@@ -38,7 +38,6 @@
 .nav-links a {
     color: var(--mantine-color-white);
     text-decoration: none;
-    text-transform: uppercase;
     font-weight: 500;
     padding: 0.5rem 0;
     transition: color 0.3s, transform 0.3s;

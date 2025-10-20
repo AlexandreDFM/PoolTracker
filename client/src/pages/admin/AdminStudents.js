@@ -14,17 +14,19 @@
  * └────────────────────────────────────────────────────────────────────────────
  */
 
-import React, { useState, useEffect, useRef } from 'react';
-import { studentService, teamService } from '../../services/api';
-import { toast } from 'react-toastify';
 import './AdminPages.css';
+import { toast } from 'react-toastify';
+import useRandColor from '../../hook/useRandColor';
+import { useState, useEffect, useRef } from 'react';
+import { studentService, teamService } from '../../services/api';
 
 const AdminStudents = () => {
-    const [students, setStudents] = useState([]);
+    const [color] = useRandColor();
+    const fileInputRef = useRef(null);
     const [teams, setTeams] = useState([]);
+    const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [csvLoading, setCsvLoading] = useState(false);
-    const fileInputRef = useRef(null);
 
     const [formData, setFormData] = useState({
         id: null,
@@ -332,7 +334,9 @@ const AdminStudents = () => {
     return (
         <div className="admin-container">
             <div className="admin-header">
-                <h1>Student Management</h1>
+                <h1>Student Management
+                    <span style={{ color: `var(--mantine-color-${color}-7)` }}>_</span>
+                </h1>
                 <div className="add-buttons">
                     <button className="btn-add" onClick={handleAddStudent}>
                         Add a student

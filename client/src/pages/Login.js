@@ -14,13 +14,15 @@
  * └────────────────────────────────────────────────────────────────────────────
  */
 
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { toast } from 'react-toastify';
 import './Login.css';
+import { useState } from 'react';
+import { toast } from 'react-toastify';
+import useRandColor from '../hook/useRandColor';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const Login = () => {
+    const [color] = useRandColor();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
@@ -118,7 +120,10 @@ const Login = () => {
     return (
         <div className="login-container">
             <div className="login-card">
-                <h2>{isFirstConnection ? 'Set Your Password' : 'Login'}</h2>
+                <h2>
+                    {isFirstConnection ? 'Set Your Password' : 'Login'}
+                    <span style={{ color: `var(--mantine-color-${color}-7)` }}>_</span>
+                </h2>
 
                 {isFirstConnection ? (
                     <form onSubmit={handleSetPassword}>

@@ -51,7 +51,6 @@
     align-items: center;
     padding: 1rem 2rem;
     background-color: #f0f8ff;
-    border-radius: 8px;
     margin-bottom: 2rem;
 }
 
@@ -69,8 +68,8 @@
 .students-section {
     background-color: var(--mantine-color-white);
     padding: 1.5rem;
-    border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--mantine-color-gray-3);
 }
 
 .students-section h2 {

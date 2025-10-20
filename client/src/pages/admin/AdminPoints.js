@@ -14,19 +14,20 @@
  * └────────────────────────────────────────────────────────────────────────────
  */
 
-import React, { useState, useEffect } from 'react';
-import { pointService, studentService } from '../../services/api';
-import { toast } from 'react-toastify';
 import './AdminPages.css';
+import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
+import { pointService } from '../../services/api';
+import useRandColor from '../../hook/useRandColor';
 
 const AdminPoints = () => {
-    const [students, setStudents] = useState([]);
-    const [pointsSummary, setPointsSummary] = useState([]);
+    const [color] = useRandColor();
     const [loading, setLoading] = useState(true);
-    const [selectedStudent, setSelectedStudent] = useState(null);
     const [showPopup, setShowPopup] = useState(false);
-    const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
     const [pointAction, setPointAction] = useState('add');
+    const [pointsSummary, setPointsSummary] = useState([]);
+    const [selectedStudent, setSelectedStudent] = useState(null);
+    const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
 
     const [formData, setFormData] = useState({
         value: 0,
@@ -161,7 +162,9 @@ const AdminPoints = () => {
     return (
         <div className="admin-container">
             <div className="admin-header">
-                <h1>Points Management</h1>
+                <h1>Points Management
+                    <span style={{ color: `var(--mantine-color-${color}-7)` }}>_</span>
+                </h1>
             </div>
 
             <div className="students-summary">

@@ -14,11 +14,11 @@
  * └────────────────────────────────────────────────────────────────────────────
  */
 
-import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { teamService } from '../services/api';
-import { toast } from 'react-toastify';
 import './TeamDetails.css';
+import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
+import { teamService } from '../services/api';
+import { useParams, Link } from 'react-router-dom';
 
 const TeamDetails = () => {
     const { id } = useParams();
