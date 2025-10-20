@@ -239,13 +239,43 @@ jobs:
                       deploy/kubernetes/production/ingress.yaml
                   images: |
                       ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-                  imagepullsecrets: |
-                      github-container-registry
 
-            - name: Wait for Rollout
+            - name: Verify Rollout
               run: |
-                  # Wait for the deployment to roll out
-                  kubectl rollout status deployment/pool-tracker-deployment-prod -n pool-tracker-prod --timeout=600s
+                  echo "⏳ Waiting for deployment rollout..."
+
+                  # Wait for the deployment to roll out with detailed output
+                  if ! kubectl rollout status deployment/pool-tracker-deployment-prod -n pool-tracker-prod --timeout=600s; then
+                      echo "❌ Rollout failed! Gathering debug information..."
+
+                      echo ""
+                      echo "=== Deployment Description ==="
+                      kubectl describe deployment pool-tracker-deployment-prod -n pool-tracker-prod
+
+                      echo ""
+                      echo "=== Pod Status ==="
+                      kubectl get pods -n pool-tracker-prod -l app=pool-tracker
+
+                      echo ""
+                      echo "=== Pod Descriptions ==="
+                      kubectl describe pods -n pool-tracker-prod -l app=pool-tracker
+
+                      echo ""
+                      echo "=== Pod Logs (if available) ==="
+                      for pod in $(kubectl get pods -n pool-tracker-prod -l app=pool-tracker -o name 2>/dev/null); do
+                          echo "--- Logs from $pod ---"
+                          kubectl logs $pod -n pool-tracker-prod --tail=100 --all-containers=true || echo "Could not fetch logs for $pod"
+                          echo ""
+                      done
+
+                      echo ""
+                      echo "=== Recent Events ==="
+                      kubectl get events -n pool-tracker-prod --sort-by='.lastTimestamp' | tail -20
+
+                      exit 1
+                  fi
+
+                  echo "✅ Deployment rolled out successfully!"
 
             - name: Request Let's Encrypt Certificate
               run: |
