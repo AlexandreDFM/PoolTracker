@@ -26,7 +26,8 @@ spec:
             terminationGracePeriodSeconds: 30
             containers:
                 - name: pool-tracker
-                  image: ghcr.io/alexandredfm/pool-tracker:latest
+                  image: ghcr.io/epitech-nice/pool-tracker:latest
+                  imagePullPolicy: Always
                   ports:
                       - containerPort: 80
                         name: http
