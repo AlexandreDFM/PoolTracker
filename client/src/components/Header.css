@@ -8,8 +8,7 @@
 }
 
 .header-top {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
+    display: flex;
     align-items: center;
     gap: 1rem;
 }
@@ -57,12 +56,29 @@
 }
 
 .user-actions {
+    gap: 0.75rem;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    flex: 1;
+    justify-content: flex-end;
 }
 
 .mobile-avatar {
+    width: 36px;
+    height: 36px;
+    background-color: var(--avatar-bg, #ddd);
+    color: var(--avatar-color, #111);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    user-select: none;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    user-select: none;
     cursor: default;
 }
 
@@ -70,7 +86,7 @@
 .auth-btn {
     background: none;
     border: none;
-    color: var(--mantine-color-white);
+    color: var(--mantine-color-text);
     cursor: pointer;
     padding: 0.5rem;
     display: flex;
@@ -78,6 +94,14 @@
     justify-content: center;
     border-radius: 4px;
     transition: background-color 0.2s;
+}
+
+.logout-btn {
+    background-color: var(--mantine-error-color);
+}
+
+.auth-btn {
+    background-color: var(--mantine-validated-color);
 }
 
 .logout-btn:hover,
@@ -183,6 +207,8 @@
     display: flex;
     align-items: center;
     margin-left: 2rem;
+    width: 100%;
+    justify-content: flex-end;
 }
 
 .user-info-desktop span {
@@ -199,6 +225,27 @@
 
 .logout-btn-desktop:hover {
     background-color: color-mix(in srgb, var(--mantine-error-color) 55%, var(--mantine-error-color-light-hover) 45%);
+}
+
+.auth-links {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.auth-links a {
+    margin-left: 1rem;
+    padding: 0.5rem 1rem;
+    transition: all 0.3s;
+    text-decoration: none;
+    color: var(--mantine-color-text);
+    background-color: var(--mantine-validated-color);
+}
+
+.auth-links a:hover {
+    background-color: var(--mantine-validated-secondary-color);
+    color: var(--mantine-color-text);
+    text-decoration: none;
 }
 
 /* Mobile: show hamburger and mobile nav */
@@ -243,11 +290,7 @@
     .nav-desktop {
         display: flex;
         align-items: center;
-    }
-
-    /* Adjust header-top to fit navigation */
-    .header-top {
-        grid-template-columns: auto auto 1fr auto;
+        flex: 1;
     }
 }
 .loading-container {
