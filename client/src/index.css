@@ -246,6 +246,7 @@
     --mantine-font-family-headings: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji;
     --mantine-heading-font-weight: 700;
     --mantine-radius-default: calc(.25rem * var(--mantine-scale));
+    --mantine-color-text: var(--mantine-color-black);
     --mantine-primary-color: #013afb;
     --mantine-primary-color-hover: #012eda;
     --mantine-validated-color: #00ff97;
@@ -753,6 +754,9 @@ html, body {
 /* Halloween Theme - Light Mode */
 :root[data-mantine-color-scheme="halloween"],
 :root[data-theme="halloween"] {
+    --mantine-color-bat: #2c1810;
+    --mantine-color-bright: var(--mantine-color-black);
+    --mantine-color-text: var(--mantine-color-black);
     --mantine-primary-color: orange;
     --mantine-primary-color-filled: var(--mantine-color-orange-6);
     --mantine-primary-color-hover: var(--mantine-color-orange-7);
@@ -762,17 +766,20 @@ html, body {
 /* Halloween Theme - Dark Mode */
 :root[data-mantine-color-scheme="halloween-dark"],
 :root[data-theme="halloween-dark"] {
+    --mantine-color-bat: #d9bba8;
+    --mantine-color-text: var(--mantine-color-white);
     --mantine-primary-color: orange;
     --mantine-primary-color-filled: var(--mantine-color-orange-6);
     --mantine-primary-color-hover: var(--mantine-color-orange-7);
     --mantine-primary-color-active: var(--mantine-color-orange-8);
     --mantine-primary-color-outline-hover: rgba(253, 126, 20, .05);
-    --mantine-color-body: #1a0d00;
+    --mantine-color-body: #261d13;
 }
 
 /* Christmas Theme - Light Mode */
 :root[data-mantine-color-scheme="christmas"],
 :root[data-theme="christmas"] {
+    --mantine-color-text: var(--mantine-color-black);
     --mantine-primary-color: red;
     --mantine-primary-color-filled: var(--mantine-color-red-6);
     --mantine-primary-color-hover: var(--mantine-color-red-7);
@@ -787,6 +794,7 @@ html, body {
 /* Christmas Theme - Dark Mode */
 :root[data-mantine-color-scheme="christmas-dark"],
 :root[data-theme="christmas-dark"] {
+    --mantine-color-text: var(--mantine-color-white);
     --mantine-primary-color: red;
     --mantine-primary-color-filled: var(--mantine-color-red-6);
     --mantine-primary-color-hover: var(--mantine-color-red-7);

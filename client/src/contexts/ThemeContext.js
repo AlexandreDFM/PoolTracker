@@ -13,7 +13,7 @@
  * └────────────────────────────────────────────────────────────────────────────
  */
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 const ThemeContext = createContext();
 
@@ -32,7 +32,7 @@ export const ThemeProvider = ({ children }) => {
         return saved === 'true';
     });
 
-    const [isHalloween] = useState(false);
+    const [isHalloween] = useState(true);
     const [isChristmas] = useState(false);
 
     // Determine the Mantine color scheme based on theme priorities
