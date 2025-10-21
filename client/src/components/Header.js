@@ -253,25 +253,13 @@ const Header = () => {
                                     <div
                                         className="mobile-avatar"
                                         title={`${user.firstName} ${user.lastName}`}
-                                        style={{
-                                            width: 36,
-                                            height: 36,
-                                            borderRadius: "50%",
-                                            backgroundColor:
-                                                "var(--avatar-bg, #ddd)",
-                                            color: "var(--avatar-color, #111)",
-                                            display: "inline-flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            fontWeight: 600,
-                                            userSelect: "none",
-                                        }}
                                     >
                                         {initials || "?"}
                                     </div>
                                     <button
                                         className="logout-btn"
                                         onClick={handleLogout}
+                                        aria-label="Logout"
                                     >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -313,30 +301,40 @@ const Header = () => {
                             )}
                         </>
                     ) : (
-                        <button
-                            className="auth-btn"
-                            onClick={handleLogin}
-                            aria-label="Login"
-                        >
-                            <div
-                                className="mobile-avatar"
-                                title="Guest"
-                                style={{
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius: "50%",
-                                    backgroundColor: "var(--avatar-bg, #ddd)",
-                                    color: "var(--avatar-color, #111)",
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    fontWeight: 600,
-                                    userSelect: "none",
-                                }}
-                            >
-                                ?
-                            </div>
-                        </button>
+                        <>
+                            {isMobile ? (
+                                <button
+                                    className="auth-btn"
+                                    onClick={handleLogin}
+                                    aria-label="Login"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="18"
+                                        height="18"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    >
+                                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                        <polyline points="16 17 21 12 16 7" />
+                                        <line
+                                            x1="21"
+                                            y1="12"
+                                            x2="9"
+                                            y2="12"
+                                        />
+                                    </svg>
+                                </button>
+                            ) : (
+                                <div className="auth-links">
+                                    <Link to="/login">Login</Link>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </div>

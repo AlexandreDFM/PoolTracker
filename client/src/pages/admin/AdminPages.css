@@ -260,7 +260,7 @@
 }
 
 .team-color-green {
-    color: var(--mantine-validated-color);
+    color: var(--mantine-color-teal-5);
     font-weight: bold;
 }
 
