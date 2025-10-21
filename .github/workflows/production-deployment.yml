@@ -27,6 +27,13 @@ on:
     push:
         branches:
             - main
+    workflow_dispatch:
+        inputs:
+            force_redeploy:
+                description: 'Force complete redeployment (including database)'
+                required: false
+                type: boolean
+                default: false
 
 jobs:
     # Build and push Docker image
@@ -228,17 +235,15 @@ jobs:
                   echo "Database is ready!"
 
             - name: Deploy Application
-              uses: azure/k8s-deploy@v5
-              with:
-                  action: deploy
-                  strategy: basic
-                  namespace: pool-tracker-prod
-                  manifests: |
-                      deploy/kubernetes/production/deployment.yaml
-                      deploy/kubernetes/production/service.yaml
-                      deploy/kubernetes/production/ingress.yaml
-                  images: |
-                      ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+              run: |
+                  echo "Deploying application with image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+
+                  # Apply Kubernetes manifests
+                  kubectl apply -f deploy/kubernetes/production/deployment.yaml
+                  kubectl apply -f deploy/kubernetes/production/service.yaml
+                  kubectl apply -f deploy/kubernetes/production/ingress.yaml
+
+                  echo "Application manifests applied successfully!"
 
             - name: Verify Rollout
               run: |
