@@ -152,7 +152,7 @@
 }
 
 .team-color-green {
-    color: var(--mantine-validated-color) !important;
+    color: var(--mantine-color-teal-5) !important;
 }
 
 .team-color-blue {
@@ -174,7 +174,7 @@
 }
 
 .team-card-green {
-    border: 2px solid var(--mantine-validated-color) !important;
+    border: 2px solid var(--mantine-color-teal-5) !important;
     background-color: #d4edda !important;
 }
 
