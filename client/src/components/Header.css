@@ -5,6 +5,41 @@
     background-color: var(--mantine-primary-color);
     color: var(--mantine-color-white);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Halloween header effects */
+.halloween .header,
+.halloween-dark .header {
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.1),
+        0 0 20px rgba(255, 140, 0, 0.3);
+}
+
+/* Spooky header glow animation for Halloween */
+.halloween .header::before,
+.halloween-dark .header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 140, 0, 0.1) 0%, transparent 70%);
+    animation: spookyGlow 4s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes spookyGlow {
+    0%, 100% {
+        opacity: 0.3;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.1);
+    }
 }
 
 .header-top {
@@ -61,6 +96,39 @@
     align-items: center;
     flex: 1;
     justify-content: flex-end;
+}
+
+.theme-toggle-btn {
+    background: none;
+    border: none;
+    color: var(--mantine-color-white);
+    cursor: pointer;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.theme-toggle-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: scale(1.05);
+}
+
+.theme-toggle-btn:active {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: scale(0.95);
+}
+
+.theme-toggle-btn svg {
+    transition: transform 0.3s ease;
+}
+
+.theme-toggle-btn:hover svg {
+    transform: rotate(15deg);
 }
 
 .mobile-avatar {
@@ -206,13 +274,8 @@
 .user-info-desktop {
     display: flex;
     align-items: center;
-    margin-left: 2rem;
-    width: 100%;
     justify-content: flex-end;
-}
-
-.user-info-desktop span {
-    margin-right: 1rem;
+    gap: 1rem;
 }
 
 .logout-btn-desktop {
