@@ -90,6 +90,15 @@ jobs:
                   build-args: |
                       NODE_ENV=production
 
+            - name: Verify Image Build
+              run: |
+                  echo "✅ Docker image built and pushed successfully!"
+                  echo "📦 Image digest: ${{ steps.build.outputs.digest }}"
+                  echo "🏷️ Image tags: ${{ steps.meta.outputs.tags }}"
+                  echo ""
+                  echo "The following image will be deployed:"
+                  echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+
     # Deploy to Kubernetes
     deploy:
         name: Deploy to Production Kubernetes
@@ -237,13 +246,22 @@ jobs:
             - name: Deploy Application
               run: |
                   echo "Deploying application with image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+                  echo "Build digest: ${{ needs.build.outputs.image_digest }}"
 
                   # Apply Kubernetes manifests
                   kubectl apply -f deploy/kubernetes/production/deployment.yaml
                   kubectl apply -f deploy/kubernetes/production/service.yaml
                   kubectl apply -f deploy/kubernetes/production/ingress.yaml
 
-                  echo "Application manifests applied successfully!"
+                  # Force pod restart by patching with timestamp annotation
+                  # This ensures new image is pulled even with 'latest' tag
+                  echo "Forcing deployment restart to pull latest image..."
+                  RESTART_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+                  kubectl patch deployment pool-tracker-deployment-prod -n pool-tracker-prod \
+                    -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"kubectl.kubernetes.io/restartedAt\":\"$RESTART_TIME\"}}}}}"
+
+                  echo "✅ Application deployed at: $RESTART_TIME"
+                  echo "🔄 Rolling restart triggered to pull new image"
 
             - name: Verify Rollout
               run: |
