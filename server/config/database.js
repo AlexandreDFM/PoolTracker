@@ -112,12 +112,25 @@ async function initDatabase() {
                 isCompleted BOOLEAN DEFAULT FALSE,
                 completedAt DATETIME NULL,
                 expiresAt DATETIME NOT NULL,
+                failedAttempts INT DEFAULT 0,
                 createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (userId) REFERENCES USERS(id) ON DELETE CASCADE,
                 FOREIGN KEY (questId) REFERENCES QUESTS(id) ON DELETE CASCADE,
                 UNIQUE KEY user_date_unique (userId, assignedDate)
             )
         `);
+
+        // Ensure existing databases get the new column when upgrading
+        try {
+            await pool.query(`ALTER TABLE DAILY_QUESTS ADD COLUMN IF NOT EXISTS failedAttempts INT DEFAULT 0`);
+        } catch (e) {
+            // Some MySQL versions may not support IF NOT EXISTS in ALTER TABLE; try a safe fallback
+            try {
+                await pool.query(`ALTER TABLE DAILY_QUESTS ADD COLUMN failedAttempts INT DEFAULT 0`);
+            } catch (err) {
+                // If it fails (column already exists or unsupported), ignore and continue
+            }
+        }
 
         // Quest submissions table
         await pool.query(`

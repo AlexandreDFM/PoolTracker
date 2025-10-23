@@ -219,6 +219,16 @@ class Quest {
                     return { success: false, message: 'Quest has expired' };
                 }
 
+                // Check if student exceeded maximum failed attempts
+                const maxAttempts = 3;
+                const failedAttempts = Number(quest.failedAttempts) || 0;
+
+                if (failedAttempts >= maxAttempts) {
+                    await connection.rollback();
+                    connection.release();
+                    return { success: false, message: `Maximum attempts reached (${maxAttempts}). You cannot try this quest anymore today.` };
+                }
+
                 // Check if code is correct
                 const isSuccessful = submittedCode === quest.secretCode;
 
@@ -249,9 +259,22 @@ class Quest {
                         points: quest.points
                     };
                 } else {
+                    // Increment failed attempts
+                    await connection.query(
+                        'UPDATE DAILY_QUESTS SET failedAttempts = failedAttempts + 1 WHERE id = ?',
+                        [dailyQuestId]
+                    );
+
+                    const newFailed = failedAttempts + 1;
                     await connection.commit();
                     connection.release();
-                    return { success: false, message: 'Invalid code. Try again!' };
+
+                    if (newFailed >= maxAttempts) {
+                        return { success: false, message: `Invalid code. You have reached the maximum of ${maxAttempts} attempts. You cannot try this quest anymore today.` };
+                    }
+
+                    const attemptsLeft = maxAttempts - newFailed;
+                    return { success: false, message: `Invalid code. Try again! Attempts left: ${attemptsLeft}` };
                 }
             } catch (error) {
                 await connection.rollback();
