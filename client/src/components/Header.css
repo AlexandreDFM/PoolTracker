@@ -312,7 +312,7 @@
 }
 
 /* Mobile: show hamburger and mobile nav */
-@media (max-width: 767px) {
+@media (max-width: 1160px) {
     .header {
         padding: 0.75rem 1rem;
     }
@@ -338,7 +338,7 @@
 }
 
 /* Desktop: show desktop nav inline, hide mobile nav and hamburger */
-@media (min-width: 768px) {
+@media (min-width: 1161px) {
     /* Hide hamburger on desktop */
     .hamburger {
         display: none;
