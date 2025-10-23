@@ -17,7 +17,7 @@
 import './AdminPages.css';
 import { toast } from 'react-toastify';
 import { useState, useEffect } from 'react';
-import { userService } from '../../services/api';
+import {studentService, userService} from '../../services/api';
 import useRandColor from '../../hook/useRandColor';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -145,7 +145,7 @@ const AdminUsers = () => {
                             await userService.updateAER(formData.id, userData);
                             break;
                         case 'STUDENT':
-                            await userService.updateStudent(formData.id, userData);
+                            await studentService.updateStudent(formData.id, userData);
                             break;
                         default:
                             throw new Error('Invalid user role');
@@ -165,7 +165,7 @@ const AdminUsers = () => {
                         await userService.createAER(userData);
                         break;
                     case 'STUDENT':
-                        await userService.createStudent(userData);
+                        await studentService.createStudent(userData);
                         break;
                     default:
                         throw new Error('Invalid user role');
