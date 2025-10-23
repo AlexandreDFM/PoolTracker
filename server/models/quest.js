@@ -190,7 +190,7 @@ class Quest {
             try {
                 // Get the daily quest with quest details
                 const [dailyQuest] = await connection.query(`
-                    SELECT dq.*, q.secretCode, q.points
+                    SELECT dq.*, q.secretCode, q.points, q.name AS questName
                     FROM DAILY_QUESTS dq
                     JOIN QUESTS q ON dq.questId = q.id
                     WHERE dq.id = ? AND dq.userId = ?
@@ -203,6 +203,7 @@ class Quest {
                 }
 
                 const quest = dailyQuest[0];
+                const questName = quest.questName || `Quest #${quest.questId || dailyQuestId}`;
 
                 // Check if quest is already completed
                 if (quest.isCompleted) {
@@ -237,7 +238,7 @@ class Quest {
                     // Award points
                     await connection.query(
                         'INSERT INTO POINTS (userId, value, reason, adminId) VALUES (?, ?, ?, 1)',
-                        [userId, quest.points, `Quest completed: ${quest.name}`, 1] // Using admin ID 1 as system
+                        [userId, quest.points, `Quest completed: ${questName}`, 1] // Using admin ID 1 as system
                     );
 
                     await connection.commit();
