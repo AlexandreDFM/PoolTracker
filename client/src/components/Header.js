@@ -159,7 +159,7 @@ const Header = () => {
                             {!isAdmin && !isAPE && !isAER ? (
                                 <li>
                                     <Link to="/quests" onClick={handleNavClick}>
-                                        Daily Quest
+                                        Quest
                                     </Link>
                                 </li>
                             ) : null}
@@ -401,7 +401,7 @@ const Header = () => {
                         {!isAdmin && !isAPE && !isAER ? (
                             <li>
                                 <Link to="/quests" onClick={handleNavClick}>
-                                    Daily Quest
+                                    Quest
                                 </Link>
                             </li>
                         ) : null}

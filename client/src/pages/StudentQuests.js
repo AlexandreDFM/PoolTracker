@@ -27,6 +27,31 @@ const StudentQuests = () => {
     const [submitting, setSubmitting] = useState(false);
     const [code, setCode] = useState('');
     const [timeRemaining, setTimeRemaining] = useState(null);
+    const [pdfUrl, setPdfUrl] = useState(null);
+
+    useEffect(() => {
+        let objectUrl = null;
+
+        const loadPdf = async () => {
+            try {
+                const blob = await questService.getQuestPdf();
+                // If server returned JSON (error), don't try to create URL
+                if (!blob || typeof Blob === 'undefined') return;
+                objectUrl = URL.createObjectURL(blob);
+                setPdfUrl(objectUrl);
+            } catch (err) {
+                console.error('Error loading quest PDF:', err);
+            }
+        };
+
+        loadPdf();
+
+        return () => {
+            if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         fetchDailyQuest();
@@ -142,7 +167,7 @@ const StudentQuests = () => {
     return (
         <div className="quest-container">
             <div className="quest-header">
-                <h1>Daily Quest</h1>
+                <h1>Daily</h1>
                 <p className="quest-date">{formatDate(new Date())}</p>
                 <span style={{ color: `var(--mantine-color-${color}-7)` }}>_</span>
             </div>
@@ -243,6 +268,18 @@ const StudentQuests = () => {
                     <li>Quests expire after the set duration, so act quickly!</li>
                 </ul>
             </div>
+
+          {pdfUrl ? (
+            <iframe
+              src={pdfUrl}
+              width="100%"
+              height="800px"
+              title="Quests PDF"
+            ></iframe>
+          ) : (
+            <p>Loading quests PDF...</p>
+          )}
+
         </div>
     );
 };

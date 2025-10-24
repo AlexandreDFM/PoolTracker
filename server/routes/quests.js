@@ -20,6 +20,7 @@ const questController = require('../controllers/questController');
 const { authenticateJWT, canManagePoints } = require('../middlewares/auth');
 
 // Routes for students - get daily quest and submit code
+router.get('/pdf', questController.getQuestPdf);
 router.get('/daily', authenticateJWT, questController.getDailyQuest);
 router.post('/submit', authenticateJWT, questController.submitQuestCode);
 
