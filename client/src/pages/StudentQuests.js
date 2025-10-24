@@ -167,7 +167,7 @@ const StudentQuests = () => {
     return (
         <div className="quest-container">
             <div className="quest-header">
-                <h1>Daily</h1>
+                <h1>Daily<span style={{ color: `var(--mantine-color-${color}-7)` }}>_</span></h1>
                 <p className="quest-date">{formatDate(new Date())}</p>
             </div>
 
@@ -268,9 +268,10 @@ const StudentQuests = () => {
                 </ul>
             </div>
 
+          <hr className="bar"/>
+
           <div className="quest-header">
-            <span style={{ color: `var(--mantine-color-${color}-7)` }}>_</span>
-            <h1>EpiQuests</h1>
+            <h1>EpiQuests<span style={{ color: `var(--mantine-color-${color}-7)` }}>_</span></h1>
           </div>
 
           {pdfUrl ? (
