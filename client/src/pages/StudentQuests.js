@@ -169,7 +169,6 @@ const StudentQuests = () => {
             <div className="quest-header">
                 <h1>Daily</h1>
                 <p className="quest-date">{formatDate(new Date())}</p>
-                <span style={{ color: `var(--mantine-color-${color}-7)` }}>_</span>
             </div>
 
             {dailyQuest ? (
@@ -269,12 +268,16 @@ const StudentQuests = () => {
                 </ul>
             </div>
 
+          <div className="quest-header">
+            <span style={{ color: `var(--mantine-color-${color}-7)` }}>_</span>
+            <h1>EpiQuests</h1>
+          </div>
+
           {pdfUrl ? (
             <iframe
               src={pdfUrl}
-              width="100%"
-              height="800px"
               title="Quests PDF"
+              className={"quests-pdf-iframe"}
             ></iframe>
           ) : (
             <p>Loading quests PDF...</p>
