@@ -236,6 +236,7 @@ exports.getQuestPdf = async (req, res) => {
     const url = 'https://raw.githubusercontent.com/epitech-nice/EpiQuests/refs/heads/main/EpiQuests.pdf';
     const response = await axios.get(url, { responseType: 'arraybuffer' });
     res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Security-Policy', "default-src 'self'; frame-src 'self' blob:;");
     res.setHeader('Content-Disposition', 'inline; filename="EpiQuests.pdf"');
     res.send(response.data);
   } catch (error) {
