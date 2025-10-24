@@ -276,7 +276,8 @@ const StudentQuests = () => {
 
           {pdfUrl ? (
             <iframe
-              src={pdfUrl}
+              {/*src={pdfUrl}*/}
+              src={`https://docs.google.com/gview?embedded=true&url=${encodeURIComponent("https://pool.nice-tek.eu/api/quests/pdf")}`}
               title="Quests PDF"
               className={"quests-pdf-iframe"}
             ></iframe>
