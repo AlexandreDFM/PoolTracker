@@ -35,6 +35,7 @@ import AdminTeams from './pages/admin/AdminTeams';
 import AdminPoints from './pages/admin/AdminPoints';
 import AdminHistory from './pages/admin/AdminHistory';
 import AdminQuests from './pages/admin/AdminQuests';
+import AdminStudentProfile from './pages/admin/AdminStudentProfile';
 
 // Protected route component with role-based access
 const ProtectedRoute = ({ children, requiredRoles = [] }) => {
@@ -168,6 +169,15 @@ const AppRoutes = () => {
                 element={
                     <ProtectedRoute requiredRoles={['ADMIN', 'APE', 'AER']}>
                         <AdminQuests />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/admin/profile/:id"
+                element={
+                    <ProtectedRoute requiredRoles={['ADMIN', 'APE']}>
+                        <AdminStudentProfile />
                     </ProtectedRoute>
                 }
             />
