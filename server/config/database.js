@@ -154,6 +154,16 @@ async function initDatabase() {
             )
         `);
 
+        // Global settings table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS SETTINGS (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                settingKey VARCHAR(100) UNIQUE NOT NULL,
+                settingValue TEXT,
+                updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )
+        `);
+
         console.log('\x1b[32mDatabase initialized successfully\x1b[0m');
 
         // Check if there are any existing admin accounts

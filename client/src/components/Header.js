@@ -34,7 +34,7 @@ const Header = () => {
     const navigate = useNavigate();
     const isMobile = window.innerWidth <= 768;
     const [isOpen, setIsOpen] = useState(false);
-    const { isDarkMode, toggleDarkMode } = useTheme();
+    const { isDarkMode, toggleDarkMode, isHalloween, isChristmas, setSeasonalTheme, globalSeasonalTheme } = useTheme();
 
     const getRoleDisplay = () => {
         if (isAdmin) return "Admin";
@@ -295,6 +295,31 @@ const Header = () => {
                             </svg>
                         )}
                     </button>
+
+                    {/* Admin Theme Selector */}
+                    {isAdmin && (
+                        <select
+                            className="theme-selector"
+                            value={globalSeasonalTheme || 'default'}
+                            onChange={async (e) => {
+                                const newTheme = e.target.value === 'default' ? 'default' : e.target.value;
+                                try {
+                                    await setSeasonalTheme(newTheme);
+                                    // Optional: Show success message
+                                    console.log('Theme updated successfully');
+                                } catch (error) {
+                                    console.error('Failed to update theme:', error);
+                                    // Optional: Show error message to user
+                                    alert('Failed to update theme. Please make sure you are logged in as an admin.');
+                                }
+                            }}
+                            title="Select seasonal theme (Admin only)"
+                        >
+                            <option value="default">Default Theme</option>
+                            <option value="halloween">🎃 Halloween</option>
+                            <option value="christmas">🎄 Christmas</option>
+                        </select>
+                    )}
                     {isAuthenticated ? (
                         <>
                             {isMobile ? (
