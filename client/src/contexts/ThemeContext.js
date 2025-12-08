@@ -32,7 +32,7 @@ export const ThemeProvider = ({ children }) => {
         return saved === 'true';
     });
 
-    const [isHalloween] = useState(true);
+    const [isHalloween] = useState(false);
     const [isChristmas] = useState(false);
 
     // Determine the Mantine color scheme based on theme priorities
