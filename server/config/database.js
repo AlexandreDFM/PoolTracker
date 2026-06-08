@@ -55,7 +55,7 @@ async function initDatabase() {
             id INT PRIMARY KEY AUTO_INCREMENT,
             name VARCHAR(100) UNIQUE NOT NULL,
             description TEXT,
-            color ENUM('none', 'red', 'green', 'blue', 'yellow') DEFAULT 'none',
+            color ENUM('none', 'red', 'green', 'blue', 'yellow', 'orange', 'pink', 'violet') DEFAULT 'none',
             createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
             updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             )

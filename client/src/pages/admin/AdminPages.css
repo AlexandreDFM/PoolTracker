@@ -279,6 +279,21 @@
     font-weight: bold;
 }
 
+.team-color-orange {
+    color: var(--mantine-color-orange-6);
+    font-weight: bold;
+}
+
+.team-color-pink {
+    color: var(--mantine-color-pink-6);
+    font-weight: bold;
+}
+
+.team-color-violet {
+    color: var(--mantine-color-violet-6);
+    font-weight: bold;
+}
+
 .color-dot {
     display: inline-block;
     width: 12px;
@@ -307,6 +322,18 @@
     background-color: #6c757d;
 }
 
+.color-dot-orange {
+    background-color: var(--mantine-color-orange-6);
+}
+
+.color-dot-pink {
+    background-color: var(--mantine-color-pink-6);
+}
+
+.color-dot-violet {
+    background-color: var(--mantine-color-violet-6);
+}
+
 .color-select {
     padding-left: 30px !important;
     position: relative;
@@ -333,6 +360,18 @@
 
 .color-select-none {
     border-left: 5px solid #6c757d !important;
+}
+
+.color-select-orange {
+    border-left: 5px solid var(--mantine-color-orange-6) !important;
+}
+
+.color-select-pink {
+    border-left: 5px solid var(--mantine-color-pink-6) !important;
+}
+
+.color-select-violet {
+    border-left: 5px solid var(--mantine-color-violet-6) !important;
 }
 
 .admin-controls {

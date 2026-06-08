@@ -261,6 +261,9 @@ const AdminTeams = () => {
                                 <option value="green">Green</option>
                                 <option value="blue">Blue</option>
                                 <option value="yellow">Yellow</option>
+                                <option value="orange">Orange</option>
+                                <option value="pink">Rose</option>
+                                <option value="violet">Violet</option>
                             </select>
                         </div>
 
@@ -307,7 +310,10 @@ const AdminTeams = () => {
                                             {team.color === 'red' ? 'Red' :
                                                 team.color === 'green' ? 'Green' :
                                                     team.color === 'blue' ? 'Blue' :
-                                                        team.color === 'yellow' ? 'Yellow' : 'Aucune'}
+                                                        team.color === 'yellow' ? 'Yellow' :
+                                                            team.color === 'orange' ? 'Orange' :
+                                                                team.color === 'pink' ? 'Rose' :
+                                                                    team.color === 'violet' ? 'Violet' : 'Aucune'}
                                         </td>
                                         <td>{team.totalPoints}</td>
                                         <td className="actions-cell">
