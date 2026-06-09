@@ -233,6 +233,11 @@ export const pointService = {
 };
 
 export const questService = {
+    getQuestPdf: async () => {
+        const response = await api.get('/quests/pdf', { responseType: 'blob' });
+        return response.data;
+    },
+
     getDailyQuest: async () => {
         const response = await api.get('/quests/daily');
         return response.data.quest;

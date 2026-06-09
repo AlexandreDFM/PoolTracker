@@ -14,6 +14,7 @@
  */
 
 import { createContext, useContext, useState, useEffect } from 'react';
+import api from '../services/api';
 
 const ThemeContext = createContext();
 
@@ -32,8 +33,39 @@ export const ThemeProvider = ({ children }) => {
         return saved === 'true';
     });
 
-    const [isHalloween] = useState(true);
-    const [isChristmas] = useState(false);
+    // Global seasonal theme state (fetched from server)
+    const [globalSeasonalTheme, setGlobalSeasonalTheme] = useState('default');
+    const [isLoadingTheme, setIsLoadingTheme] = useState(true);
+
+    // Computed seasonal states based on global theme
+    const isHalloween = globalSeasonalTheme === 'halloween';
+    const isChristmas = globalSeasonalTheme === 'christmas';
+
+    // Fetch global theme from server
+    const fetchGlobalTheme = async () => {
+        try {
+            const response = await api.get('/settings/theme');
+            setGlobalSeasonalTheme(response.data.theme);
+        } catch (error) {
+            console.error('Failed to fetch global theme:', error);
+            // Fallback to default theme
+            setGlobalSeasonalTheme('default');
+        } finally {
+            setIsLoadingTheme(false);
+        }
+    };
+
+    // Update global theme on server (admin only)
+    const updateGlobalTheme = async (theme) => {
+        try {
+            const response = await api.put('/settings/theme', { theme });
+            setGlobalSeasonalTheme(theme);
+            return response.data;
+        } catch (error) {
+            console.error('Failed to update global theme:', error);
+            throw error;
+        }
+    };
 
     // Determine the Mantine color scheme based on theme priorities
     const getMantineColorScheme = () => {
@@ -62,6 +94,31 @@ export const ThemeProvider = ({ children }) => {
             return newValue;
         });
     };
+
+    // Set seasonal theme (admin only - updates global theme)
+    const setSeasonalTheme = async (theme) => {
+        try {
+            await updateGlobalTheme(theme);
+        } catch (error) {
+            console.error('Failed to update seasonal theme:', error);
+            // Re-throw the error so the UI can handle it
+            throw error;
+        }
+    };
+
+    // Fetch global theme on component mount
+    useEffect(() => {
+        fetchGlobalTheme();
+    }, []);
+
+    // Poll for theme updates every 2 minutes
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchGlobalTheme();
+        }, 2 * 60 * 1000); // 2 minutes
+
+        return () => clearInterval(interval);
+    }, []);
 
     // Apply theme classes to document root and html element dynamically
     useEffect(() => {
@@ -116,7 +173,10 @@ export const ThemeProvider = ({ children }) => {
         isDarkMode,
         isHalloween,
         isChristmas,
+        globalSeasonalTheme,
+        isLoadingTheme,
         toggleDarkMode,
+        setSeasonalTheme,
         getMantineColorScheme,
         getThemeClasses
     };

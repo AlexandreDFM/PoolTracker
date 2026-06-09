@@ -27,6 +27,31 @@ const StudentQuests = () => {
     const [submitting, setSubmitting] = useState(false);
     const [code, setCode] = useState('');
     const [timeRemaining, setTimeRemaining] = useState(null);
+    const [pdfUrl, setPdfUrl] = useState(null);
+
+    useEffect(() => {
+        let objectUrl = null;
+
+        const loadPdf = async () => {
+            try {
+                const blob = await questService.getQuestPdf();
+                // If server returned JSON (error), don't try to create URL
+                if (!blob || typeof Blob === 'undefined') return;
+                objectUrl = URL.createObjectURL(blob);
+                setPdfUrl(objectUrl);
+            } catch (err) {
+                console.error('Error loading quest PDF:', err);
+            }
+        };
+
+        loadPdf();
+
+        return () => {
+            if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         fetchDailyQuest();
@@ -105,11 +130,17 @@ const StudentQuests = () => {
             } else {
                 toast.error(result.message);
                 setCode('');
+                await fetchDailyQuest();
             }
         } catch (error) {
             console.error('Error submitting quest code:', error);
             toast.error(error.response?.data?.message || 'Error submitting code');
             setCode('');
+            try {
+                await fetchDailyQuest();
+            } catch (_) {
+                // ignore
+            }
         } finally {
             setSubmitting(false);
         }
@@ -136,9 +167,8 @@ const StudentQuests = () => {
     return (
         <div className="quest-container">
             <div className="quest-header">
-                <h1>Daily Quest</h1>
+                <h1>Daily<span style={{ color: `var(--mantine-color-${color}-7)` }}>_</span></h1>
                 <p className="quest-date">{formatDate(new Date())}</p>
-                <span style={{ color: `var(--mantine-color-${color}-7)` }}>_</span>
             </div>
 
             {dailyQuest ? (
@@ -184,7 +214,12 @@ const StudentQuests = () => {
                         <div className="quest-submission">
                             <h3>Enter Quest Code</h3>
                             <p className="submission-instructions">
-                                Complete the quest task and enter the secret code you discovered:
+                                Complete the quest task and enter the secret code you discovered:<br/>
+                              {typeof dailyQuest?.failedAttempts !== 'undefined' && (
+                                <>
+                                  Attempts left: {Math.max(0, 3 - Number(dailyQuest?.failedAttempts || 0))}
+                                </>
+                              )}
                             </p>
                             <form onSubmit={handleSubmitCode} className="code-form">
                                 <div className="code-input-group">
@@ -194,13 +229,15 @@ const StudentQuests = () => {
                                         onChange={(e) => setCode(e.target.value)}
                                         placeholder="Enter secret code"
                                         className="code-input"
-                                        disabled={submitting}
+                                        disabled={submitting || (Number(dailyQuest?.failedAttempts || 0) >= 3)}
                                         autoComplete="off"
                                     />
                                     <button
                                         type="submit"
                                         className="submit-code-btn"
-                                        disabled={submitting || !code.trim()}
+                                        disabled={
+                                            submitting || !code.trim() || (Number(dailyQuest?.failedAttempts || 0) >= 3)
+                                        }
                                     >
                                         {submitting ? 'Validating...' : 'Submit Code'}
                                     </button>
@@ -221,13 +258,32 @@ const StudentQuests = () => {
             <div className="quest-info">
                 <h3>About Daily Quests</h3>
                 <ul>
-                    <li>A new quest is assigned to you every day at the designated time</li>
-                    <li>Each student receives a different quest</li>
-                    <li>Complete the task described in your quest</li>
-                    <li>Find the secret code and enter it to earn points</li>
+                    <li>A new quest is assigned to you every day at the designated time.</li>
+                    <li>Each student receives a different quest.</li>
+                    <li>Complete the task described in your quest.</li>
+                    <li>Find the secret code and enter it to earn points.</li>
+                    <li>You have up to 3 attempts to submit the correct code for a given quest. After 3 failed attempts you cannot try that quest again for the rest of the day.</li>
+                    <li>If you receive another quest later, your attempt counter is reset to 3.</li>
                     <li>Quests expire after the set duration, so act quickly!</li>
                 </ul>
             </div>
+
+          <hr className="bar"/>
+
+          <div className="quest-header">
+            <h1>EpiQuests<span style={{ color: `var(--mantine-color-${color}-7)` }}>_</span></h1>
+          </div>
+
+          {pdfUrl ? (
+            <iframe
+              src={`https://docs.google.com/gview?embedded=true&url=${encodeURIComponent("https://pool.nice-tek.eu/api/quests/pdf")}`}
+              title="Quests PDF"
+              className={"quests-pdf-iframe"}
+            ></iframe>
+          ) : (
+            <p>Loading quests PDF...</p>
+          )}
+
         </div>
     );
 };

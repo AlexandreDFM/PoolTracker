@@ -22,6 +22,7 @@ import { ToastContainer } from 'react-toastify';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import HalloweenDecorations from './components/HalloweenDecorations';
+import ChristmasDecorations from './components/ChristmasDecorations';
 import { BrowserRouter as Router, useLocation } from 'react-router-dom';
 
 // Component to conditionally render the Header
@@ -34,12 +35,13 @@ const HeaderHandler = () => {
 
 // Main App wrapper with theme
 function AppContent() {
-    const { getThemeClasses, isHalloween } = useTheme();
+    const { getThemeClasses, isHalloween, isChristmas } = useTheme();
     const appClasses = getThemeClasses();
 
     return (
         <div className={`app ${appClasses}`}>
             {isHalloween && <HalloweenDecorations />}
+            {isChristmas && <ChristmasDecorations />}
             <HeaderHandler />
             <main className="main-content">
                 <AppRoutes />

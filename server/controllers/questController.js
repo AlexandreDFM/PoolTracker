@@ -15,6 +15,7 @@
  */
 
 const Quest = require('../models/quest');
+const axios = require('axios');
 
 // Get all quests (admin)
 exports.getAllQuests = async (req, res) => {
@@ -227,4 +228,19 @@ exports.updateQuestConfig = async (req, res) => {
         console.error('\x1b[31mError updating quest config:\x1b[0m', error);
         res.status(500).json({ message: 'Server error while updating quest config' });
     }
+};
+
+// Get quest (student)
+exports.getQuestPdf = async (req, res) => {
+  try {
+    const url = 'https://raw.githubusercontent.com/epitech-nice/EpiQuests/refs/heads/main/EpiQuests.pdf';
+    const response = await axios.get(url, { responseType: 'arraybuffer' });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Security-Policy', "default-src 'self'; frame-src 'self' blob:;");
+    res.setHeader('Content-Disposition', 'inline; filename="EpiQuests.pdf"');
+    res.send(response.data);
+  } catch (error) {
+    console.error('\x1b[31mError fetching quest config:\x1b[0m', error);
+    res.status(500).json({ message: 'Server error while fetching quest' });
+  }
 };

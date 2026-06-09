@@ -190,7 +190,7 @@ class Quest {
             try {
                 // Get the daily quest with quest details
                 const [dailyQuest] = await connection.query(`
-                    SELECT dq.*, q.secretCode, q.points
+                    SELECT dq.*, q.secretCode, q.points, q.name AS questName
                     FROM DAILY_QUESTS dq
                     JOIN QUESTS q ON dq.questId = q.id
                     WHERE dq.id = ? AND dq.userId = ?
@@ -203,6 +203,7 @@ class Quest {
                 }
 
                 const quest = dailyQuest[0];
+                const questName = quest.questName || `Quest #${quest.questId || dailyQuestId}`;
 
                 // Check if quest is already completed
                 if (quest.isCompleted) {
@@ -216,6 +217,16 @@ class Quest {
                     await connection.rollback();
                     connection.release();
                     return { success: false, message: 'Quest has expired' };
+                }
+
+                // Check if student exceeded maximum failed attempts
+                const maxAttempts = 3;
+                const failedAttempts = Number(quest.failedAttempts) || 0;
+
+                if (failedAttempts >= maxAttempts) {
+                    await connection.rollback();
+                    connection.release();
+                    return { success: false, message: `Maximum attempts reached (${maxAttempts}). You cannot try this quest anymore today.` };
                 }
 
                 // Check if code is correct
@@ -237,7 +248,7 @@ class Quest {
                     // Award points
                     await connection.query(
                         'INSERT INTO POINTS (userId, value, reason, adminId) VALUES (?, ?, ?, 1)',
-                        [userId, quest.points, `Quest completed: ${quest.name}`, 1] // Using admin ID 1 as system
+                        [userId, quest.points, `Quest completed: ${questName}`, 1] // Using admin ID 1 as system
                     );
 
                     await connection.commit();
@@ -248,9 +259,22 @@ class Quest {
                         points: quest.points
                     };
                 } else {
+                    // Increment failed attempts
+                    await connection.query(
+                        'UPDATE DAILY_QUESTS SET failedAttempts = failedAttempts + 1 WHERE id = ?',
+                        [dailyQuestId]
+                    );
+
+                    const newFailed = failedAttempts + 1;
                     await connection.commit();
                     connection.release();
-                    return { success: false, message: 'Invalid code. Try again!' };
+
+                    if (newFailed >= maxAttempts) {
+                        return { success: false, message: `Invalid code. You have reached the maximum of ${maxAttempts} attempts. You cannot try this quest anymore today.` };
+                    }
+
+                    const attemptsLeft = maxAttempts - newFailed;
+                    return { success: false, message: `Invalid code. Try again! Attempts left: ${attemptsLeft}` };
                 }
             } catch (error) {
                 await connection.rollback();

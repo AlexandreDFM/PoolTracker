@@ -53,6 +53,7 @@ const studentRoutes = require('./routes/students');
 const pointRoutes = require('./routes/points');
 const userRoutes = require('./routes/users');
 const questRoutes = require('./routes/quests');
+const settingsRoutes = require('./routes/settings');
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -61,6 +62,7 @@ app.use('/api/students', studentRoutes);
 app.use('/api/points', pointRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/quests', questRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Default route
 app.get('/', (req, res) => {

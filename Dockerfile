@@ -2,7 +2,7 @@
 # This builds a static image containing both the React frontend and Node.js backend
 
 # Stage 1: Build the React frontend
-FROM node:18-alpine AS frontend-build
+FROM node:20.18-alpine AS frontend-build
 
 WORKDIR /app/client
 

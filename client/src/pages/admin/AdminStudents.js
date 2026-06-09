@@ -19,8 +19,10 @@ import { toast } from 'react-toastify';
 import useRandColor from '../../hook/useRandColor';
 import { useState, useEffect, useRef } from 'react';
 import { studentService, teamService } from '../../services/api';
+import { useNavigate } from 'react-router-dom';
 
 const AdminStudents = () => {
+    const navigate = useNavigate();
     const [color] = useRandColor();
     const fileInputRef = useRef(null);
     const [teams, setTeams] = useState([]);
@@ -481,7 +483,8 @@ const AdminStudents = () => {
                     </thead>
                     <tbody>
                         {students.map(student => (
-                            <tr key={student.id}>
+                            <tr key={student.id}
+                                onClick={() => navigate(`/admin/profile/${student.id}`)}>
                                 <td>{student.email}</td>
                                 <td>{student.firstName || '-'}</td>
                                 <td>{student.lastName || '-'}</td>

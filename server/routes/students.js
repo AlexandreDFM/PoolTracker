@@ -17,10 +17,10 @@
 const express = require('express');
 const router = express.Router();
 const studentController = require('../controllers/studentController');
-const { authenticateJWT, hasAdminPrivileges, isAuthorizedOrSelf, canManageAccountType } = require('../middlewares/auth');
+const { authenticateJWT, isAuthorizedOrSelf, canManageAccountType } = require('../middlewares/auth');
 
 // Routes accessible to all administrators (ADMIN and APE)
-router.get('/', authenticateJWT, hasAdminPrivileges, studentController.getAllStudents);
+router.get('/', authenticateJWT, canManageAccountType('STUDENT'), studentController.getAllStudents);
 
 // Creating STUDENT accounts - open to ADMIN and APE
 router.post('/', authenticateJWT, canManageAccountType('STUDENT'), studentController.createStudent);
@@ -29,7 +29,7 @@ router.post('/', authenticateJWT, canManageAccountType('STUDENT'), studentContro
 router.get('/:id', authenticateJWT, isAuthorizedOrSelf, studentController.getStudentById);
 
 // Routes reserved for administrators with appropriate permissions
-router.put('/:id', authenticateJWT, hasAdminPrivileges, studentController.updateStudent);
+router.put('/:id', authenticateJWT, canManageAccountType('STUDENT'), studentController.updateStudent);
 router.delete('/:id', authenticateJWT, canManageAccountType('STUDENT'), studentController.deleteStudent);
 
 module.exports = router;

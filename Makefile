@@ -22,8 +22,8 @@ COMPOSE_PROD	=	docker-compose.yml
 COMPOSE_DEV		=	docker-compose.dev.yml
 
 # Compose commands
-DC	=	docker-compose -p $(PROJECT) -f docker-compose.yml
-DC_DEV	=	docker-compose -p $(DEV_PROJECT) -f docker-compose.dev.yml
+DC	=	docker compose -p $(PROJECT) -f docker-compose.yml
+DC_DEV	=	docker compose -p $(DEV_PROJECT) -f docker-compose.dev.yml
 
 # Colors
 BLUE	=	\033[1;34m
