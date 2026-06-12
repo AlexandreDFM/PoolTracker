@@ -60,6 +60,7 @@ services:
   # Production-like database management
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:5.2
+    platform: linux/amd64
     restart: unless-stopped
     ports:
       - "8080:80"
