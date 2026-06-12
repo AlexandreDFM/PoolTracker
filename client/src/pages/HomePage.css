@@ -163,6 +163,18 @@
     color: #ffc107 !important;
 }
 
+.team-color-orange {
+    color: #fd7e14 !important;
+}
+
+.team-color-pink {
+    color: #e83e8c !important;
+}
+
+.team-color-violet {
+    color: #6f42c1 !important;
+}
+
 .team-color-none {
     color: #6c757d !important;
     font-weight: bold;
@@ -186,6 +198,21 @@
 .team-card-yellow {
     border: 2px solid #ffc107 !important;
     background-color: #fff3cd !important;
+}
+
+.team-card-orange {
+    border: 2px solid #fd7e14 !important;
+    background-color: #ffe5d1 !important;
+}
+
+.team-card-pink {
+    border: 2px solid #e83e8c !important;
+    background-color: #f8d7da !important;
+}
+
+.team-card-violet {
+    border: 2px solid #6f42c1 !important;
+    background-color: #e2d9f3 !important;
 }
 
 .team-card-none {

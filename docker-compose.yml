@@ -49,6 +49,7 @@ services:
       - pool-tracker-network
 
   phpmyadmin:
+    platform: linux/amd64
     image: phpmyadmin/phpmyadmin
     ports:
       - "8080:80"
