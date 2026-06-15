@@ -14,12 +14,12 @@
  * └────────────────────────────────────────────────────────────────────────────
  */
 
-import './AdminPages.css';
-import { toast } from 'react-toastify';
-import useRandColor from '../../hook/useRandColor';
-import { useState, useEffect, useRef } from 'react';
-import { studentService, teamService } from '../../services/api';
-import { useNavigate } from 'react-router-dom';
+import "./AdminPages.css";
+import { toast } from "react-toastify";
+import useRandColor from "../../hook/useRandColor";
+import { useState, useEffect, useRef } from "react";
+import { studentService, teamService } from "../../services/api";
+import { useNavigate } from "react-router-dom";
 
 const AdminStudents = () => {
     const navigate = useNavigate();
@@ -32,10 +32,10 @@ const AdminStudents = () => {
 
     const [formData, setFormData] = useState({
         id: null,
-        email: '',
-        firstName: '',
-        lastName: '',
-        teamId: ''
+        email: "",
+        firstName: "",
+        lastName: "",
+        teamId: "",
     });
 
     const [showForm, setShowForm] = useState(false);
@@ -47,14 +47,14 @@ const AdminStudents = () => {
             try {
                 const [studentsData, teamsData] = await Promise.all([
                     studentService.getAllStudents(),
-                    teamService.getAllTeams()
+                    teamService.getAllTeams(),
                 ]);
 
                 setStudents(studentsData);
                 setTeams(teamsData);
             } catch (error) {
-                console.error('\x1b[31mError loading data:\x1b[0m', error);
-                toast.error('Error loading data');
+                console.error("\x1b[31mError loading data:\x1b[0m", error);
+                toast.error("Error loading data");
             } finally {
                 setLoading(false);
             }
@@ -67,17 +67,17 @@ const AdminStudents = () => {
         const { name, value } = e.target;
         setFormData({
             ...formData,
-            [name]: value
+            [name]: value,
         });
     };
 
     const handleAddStudent = () => {
         setFormData({
             id: null,
-            email: '',
-            firstName: '',
-            lastName: '',
-            teamId: ''
+            email: "",
+            firstName: "",
+            lastName: "",
+            teamId: "",
         });
         setIsEditing(false);
         setShowForm(true);
@@ -88,9 +88,9 @@ const AdminStudents = () => {
         setFormData({
             id: student.id,
             email: student.email,
-            firstName: student.firstName || '',
-            lastName: student.lastName || '',
-            teamId: ''
+            firstName: student.firstName || "",
+            lastName: student.lastName || "",
+            teamId: "",
         });
         setIsEditing(true);
         setShowForm(true);
@@ -107,26 +107,32 @@ const AdminStudents = () => {
                 await studentService.updateStudent(formData.id, {
                     email: formData.email,
                     firstName: formData.firstName,
-                    lastName: formData.lastName
+                    lastName: formData.lastName,
                 });
 
                 if (formData.teamId) {
-                    await teamService.addStudentToTeam(formData.teamId, formData.id);
+                    await teamService.addStudentToTeam(
+                        formData.teamId,
+                        formData.id,
+                    );
                 }
 
-                toast.success('Student updated successfully');
+                toast.success("Student updated successfully");
             } else {
                 const result = await studentService.createStudent({
                     email: formData.email,
                     firstName: formData.firstName,
-                    lastName: formData.lastName
+                    lastName: formData.lastName,
                 });
 
                 if (formData.teamId && result.student?.id) {
-                    await teamService.addStudentToTeam(formData.teamId, result.student.id);
+                    await teamService.addStudentToTeam(
+                        formData.teamId,
+                        result.student.id,
+                    );
                 }
 
-                toast.success('Student created successfully');
+                toast.success("Student created successfully");
             }
 
             const updatedStudents = await studentService.getAllStudents();
@@ -135,21 +141,21 @@ const AdminStudents = () => {
             setShowForm(false);
             setFormData({
                 id: null,
-                email: '',
-                firstName: '',
-                lastName: '',
-                teamId: ''
+                email: "",
+                firstName: "",
+                lastName: "",
+                teamId: "",
             });
         } catch (error) {
-            console.error('\x1b[31mError during save:\x1b[0m', error);
-            toast.error(error.response?.data?.message || 'Error during save');
+            console.error("\x1b[31mError during save:\x1b[0m", error);
+            toast.error(error.response?.data?.message || "Error during save");
         } finally {
             setLoading(false);
         }
     };
 
     const handleDeleteStudent = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this student?')) {
+        if (!window.confirm("Are you sure you want to delete this student?")) {
             return;
         }
 
@@ -157,12 +163,12 @@ const AdminStudents = () => {
             setLoading(true);
             await studentService.deleteStudent(id);
 
-            setStudents(students.filter(student => student.id !== id));
+            setStudents(students.filter((student) => student.id !== id));
 
-            toast.success('Student deleted successfully');
+            toast.success("Student deleted successfully");
         } catch (error) {
-            console.error('\x1b[31mError during deletion:\x1b[0m', error);
-            toast.error('Error deleting student');
+            console.error("\x1b[31mError during deletion:\x1b[0m", error);
+            toast.error("Error deleting student");
         } finally {
             setLoading(false);
         }
@@ -177,8 +183,8 @@ const AdminStudents = () => {
         const file = e.target.files[0];
         if (!file) return;
 
-        if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
-            toast.error('Please upload a CSV file');
+        if (file.type !== "text/csv" && !file.name.endsWith(".csv")) {
+            toast.error("Please upload a CSV file");
             if (fileInputRef.current) {
                 fileInputRef.current.value = null;
             }
@@ -197,15 +203,17 @@ const AdminStudents = () => {
             const csvContent = e.target.result;
 
             // Parse CSV
-            const rows = csvContent.split('\n');
+            const rows = csvContent.split("\n");
             // Remove any empty rows
-            const filteredRows = rows.filter(row => row.trim() !== '');
+            const filteredRows = rows.filter((row) => row.trim() !== "");
 
             // Extract header and check required fields
-            const headers = filteredRows[0].split(';').map(h => h.trim().toLowerCase());
+            const headers = filteredRows[0]
+                .split(";")
+                .map((h) => h.trim().toLowerCase());
 
             // Check if email column exists
-            const emailIndex = headers.findIndex(h => h === 'email');
+            const emailIndex = headers.findIndex((h) => h === "email");
             if (emailIndex === -1) {
                 toast.error('CSV must contain an "email" column');
                 setCsvLoading(false);
@@ -213,16 +221,30 @@ const AdminStudents = () => {
             }
 
             // Get indices for optional fields
-            const firstNameIndex = headers.findIndex(h => h === 'firstname' || h === 'first_name' || h === 'first name');
-            const lastNameIndex = headers.findIndex(h => h === 'lastname' || h === 'last_name' || h === 'last name');
-            const teamIndex = headers.findIndex(h => h === 'team' || h === 'teamname' || h === 'team_name' || h === 'team name');
+            const firstNameIndex = headers.findIndex(
+                (h) =>
+                    h === "firstname" ||
+                    h === "first_name" ||
+                    h === "first name",
+            );
+            const lastNameIndex = headers.findIndex(
+                (h) =>
+                    h === "lastname" || h === "last_name" || h === "last name",
+            );
+            const teamIndex = headers.findIndex(
+                (h) =>
+                    h === "team" ||
+                    h === "teamname" ||
+                    h === "team_name" ||
+                    h === "team name",
+            );
 
             // Process data rows
             const studentsToCreate = [];
             const errors = [];
 
             for (let i = 1; i < filteredRows.length; i++) {
-                const values = filteredRows[i].split(';').map(v => v.trim());
+                const values = filteredRows[i].split(";").map((v) => v.trim());
 
                 // Skip rows with invalid format
                 if (values.length < headers.length) {
@@ -231,16 +253,17 @@ const AdminStudents = () => {
                 }
 
                 const email = values[emailIndex];
-                if (!email || !email.includes('@')) {
+                if (!email || !email.includes("@")) {
                     errors.push(`Row ${i + 1}: Invalid email "${email}"`);
                     continue;
                 }
 
                 const studentData = {
                     email,
-                    firstName: firstNameIndex !== -1 ? values[firstNameIndex] : '',
-                    lastName: lastNameIndex !== -1 ? values[lastNameIndex] : '',
-                    teamName: teamIndex !== -1 ? values[teamIndex] : ''
+                    firstName:
+                        firstNameIndex !== -1 ? values[firstNameIndex] : "",
+                    lastName: lastNameIndex !== -1 ? values[lastNameIndex] : "",
+                    teamName: teamIndex !== -1 ? values[teamIndex] : "",
                 };
 
                 studentsToCreate.push(studentData);
@@ -249,12 +272,14 @@ const AdminStudents = () => {
             // Show validation errors if any
             if (errors.length > 0) {
                 toast.error(`CSV validation errors: ${errors.length}`);
-                console.error('CSV validation errors:', errors);
+                console.error("CSV validation errors:", errors);
                 // If there are too many errors, just show the first few
                 if (errors.length > 3) {
-                    toast.error(`${errors[0]}, ${errors[1]}, ${errors[2]}, and ${errors.length - 3} more...`);
+                    toast.error(
+                        `${errors[0]}, ${errors[1]}, ${errors[2]}, and ${errors.length - 3} more...`,
+                    );
                 } else {
-                    errors.forEach(err => toast.error(err));
+                    errors.forEach((err) => toast.error(err));
                 }
 
                 if (studentsToCreate.length === 0) {
@@ -264,7 +289,11 @@ const AdminStudents = () => {
             }
 
             // Confirm import
-            if (!window.confirm(`Ready to import ${studentsToCreate.length} students. Continue?`)) {
+            if (
+                !window.confirm(
+                    `Ready to import ${studentsToCreate.length} students. Continue?`,
+                )
+            ) {
                 setCsvLoading(false);
                 return;
             }
@@ -279,24 +308,36 @@ const AdminStudents = () => {
                     const result = await studentService.createStudent({
                         email: student.email,
                         firstName: student.firstName,
-                        lastName: student.lastName
+                        lastName: student.lastName,
                     });
 
                     // Assign to team if specified
                     if (student.teamName && result.student?.id) {
                         // Find team by name
-                        const team = teams.find(t => t.name.toLowerCase() === student.teamName.toLowerCase());
+                        const team = teams.find(
+                            (t) =>
+                                t.name.toLowerCase() ===
+                                student.teamName.toLowerCase(),
+                        );
                         if (team) {
-                            await teamService.addStudentToTeam(team.id, result.student.id);
+                            await teamService.addStudentToTeam(
+                                team.id,
+                                result.student.id,
+                            );
                         } else {
-                            console.warn(`Team "${student.teamName}" not found for student ${student.email}`);
+                            console.warn(
+                                `Team "${student.teamName}" not found for student ${student.email}`,
+                            );
                         }
                     }
 
                     successCount++;
                 } catch (error) {
                     errorCount++;
-                    console.error(`Error creating student ${student.email}:`, error);
+                    console.error(
+                        `Error creating student ${student.email}:`,
+                        error,
+                    );
                 }
             }
 
@@ -307,7 +348,9 @@ const AdminStudents = () => {
             // Show final results
             toast.success(`Successfully imported ${successCount} students`);
             if (errorCount > 0) {
-                toast.error(`Failed to import ${errorCount} students. Check console for details.`);
+                toast.error(
+                    `Failed to import ${errorCount} students. Check console for details.`,
+                );
             }
 
             // Reset file input
@@ -317,8 +360,8 @@ const AdminStudents = () => {
 
             setShowCsvImport(false);
         } catch (error) {
-            console.error('\x1b[31mError processing CSV:\x1b[0m', error);
-            toast.error('Error processing CSV file');
+            console.error("\x1b[31mError processing CSV:\x1b[0m", error);
+            toast.error("Error processing CSV file");
         } finally {
             setCsvLoading(false);
         }
@@ -336,8 +379,11 @@ const AdminStudents = () => {
     return (
         <div className="admin-container">
             <div className="admin-header">
-                <h1>Student Management
-                    <span style={{ color: `var(--mantine-color-${color}-7)` }}>_</span>
+                <h1>
+                    Student Management
+                    <span style={{ color: `var(--mantine-color-${color}-7)` }}>
+                        _
+                    </span>
                 </h1>
                 <div className="add-buttons">
                     <button className="btn-add" onClick={handleAddStudent}>
@@ -351,7 +397,7 @@ const AdminStudents = () => {
 
             {showForm && (
                 <div className="form-container">
-                    <h2>{isEditing ? 'Edit Student' : 'Add Student'}</h2>
+                    <h2>{isEditing ? "Edit Student" : "Add Student"}</h2>
                     <form onSubmit={handleSubmit}>
                         <div className="form-group">
                             <label htmlFor="email">Email *</label>
@@ -396,7 +442,7 @@ const AdminStudents = () => {
                                 onChange={handleChange}
                             >
                                 <option value="">-- Not assigned --</option>
-                                {teams.map(team => (
+                                {teams.map((team) => (
                                     <option key={team.id} value={team.id}>
                                         {team.name}
                                     </option>
@@ -405,8 +451,12 @@ const AdminStudents = () => {
                         </div>
 
                         <div className="form-actions">
-                            <button type="submit" className="btn-save" disabled={loading}>
-                                {loading ? 'Saving...' : 'Save'}
+                            <button
+                                type="submit"
+                                className="btn-save"
+                                disabled={loading}
+                            >
+                                {loading ? "Saving..." : "Save"}
                             </button>
                             <button
                                 type="button"
@@ -427,15 +477,32 @@ const AdminStudents = () => {
                     <div className="csv-import-instructions">
                         <p>Upload a CSV file with the following columns:</p>
                         <ul>
-                            <li><strong>email</strong> (required): Student email address</li>
-                            <li><strong>firstname</strong> or <strong>first_name</strong> (optional): Student first name</li>
-                            <li><strong>lastname</strong> or <strong>last_name</strong> (optional): Student last name</li>
-                            <li><strong>team</strong> or <strong>team_name</strong> (optional): Team name to assign</li>
+                            <li>
+                                <strong>email</strong> (required): Student email
+                                address
+                            </li>
+                            <li>
+                                <strong>firstname</strong> or{" "}
+                                <strong>first_name</strong> (optional): Student
+                                first name
+                            </li>
+                            <li>
+                                <strong>lastname</strong> or{" "}
+                                <strong>last_name</strong> (optional): Student
+                                last name
+                            </li>
+                            <li>
+                                <strong>team</strong> or{" "}
+                                <strong>team_name</strong> (optional): Team name
+                                to assign
+                            </li>
                         </ul>
                         <p>Example CSV format:</p>
-                        <pre>email;firstname;lastname;team
+                        <pre>
+                            email;firstname;lastname;team
                             john.doe@epitech.eu;John;Doe;Red Team
-                            jane.smith@epitech.eu;Jane;Smith;Blue Team</pre>
+                            jane.smith@epitech.eu;Jane;Smith;Blue Team
+                        </pre>
                     </div>
 
                     <div className="form-group">
@@ -482,23 +549,40 @@ const AdminStudents = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {students.map(student => (
-                            <tr key={student.id}
-                                onClick={() => navigate(`/admin/profile/${student.id}`)}>
+                        {students.map((student) => (
+                            <tr key={student.id}>
                                 <td>{student.email}</td>
-                                <td>{student.firstName || '-'}</td>
-                                <td>{student.lastName || '-'}</td>
-                                <td>{new Date(student.createdAt).toLocaleDateString('fr-FR')}</td>
+                                <td>{student.firstName || "-"}</td>
+                                <td>{student.lastName || "-"}</td>
+                                <td>
+                                    {new Date(
+                                        student.createdAt,
+                                    ).toLocaleDateString("fr-FR")}
+                                </td>
                                 <td className="actions-cell">
                                     <button
+                                        className="btn-view"
+                                        onClick={() =>
+                                            navigate(
+                                                `/admin/profile/${student.id}`,
+                                            )
+                                        }
+                                    >
+                                        View
+                                    </button>
+                                    <button
                                         className="btn-edit"
-                                        onClick={() => handleEditStudent(student)}
+                                        onClick={() =>
+                                            handleEditStudent(student)
+                                        }
                                     >
                                         Edit
                                     </button>
                                     <button
                                         className="btn-delete"
-                                        onClick={() => handleDeleteStudent(student.id)}
+                                        onClick={() =>
+                                            handleDeleteStudent(student.id)
+                                        }
                                     >
                                         Delete
                                     </button>
