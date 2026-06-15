@@ -189,6 +189,7 @@
     white-space: nowrap;
 }
 
+.btn-view,
 .btn-edit,
 .btn-delete {
     padding: 0.4rem 0.75rem;
@@ -200,13 +201,22 @@
     transition: background-color 0.3s;
 }
 
-.btn-edit {
+.btn-view {
     background-color: var(--mantine-primary-color);
     color: var(--mantine-color-white);
 }
 
-.btn-edit:hover {
+.btn-view:hover {
     background-color: #33A7DC;
+}
+
+.btn-edit {
+    background-color: var(--mantine-color-dimmed);
+    color: var(--mantine-color-white);
+}
+
+.btn-edit:hover {
+    background-color: #e2e6ea;
 }
 
 .btn-delete {
