@@ -14,28 +14,44 @@
  * └────────────────────────────────────────────────────────────────────────────
  */
 
-const mysql = require('mysql2/promise');
-const dotenv = require('dotenv');
+const mysql = require("mysql2/promise");
+const dotenv = require("dotenv");
 
 dotenv.config();
 
 // Database connection configuration
 const pool = mysql.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0,
 });
 
-async function initDatabase() {
+// Ping MySQL every 5 minutes to prevent wait_timeout from closing idle connections.
+// enableKeepAlive handles TCP-level drops, but MySQL closes connections at the
+// application level after wait_timeout (default 8h) regardless of TCP keepalive.
+setInterval(
+  async () => {
     try {
-        // Create tables if they don't exist
+      await pool.query("SELECT 1");
+    } catch (err) {
+      console.error("\x1b[33mDB keep-alive ping failed:\x1b[0m", err.message);
+    }
+  },
+  5 * 60 * 1000,
+);
 
-        // Users table
-        await pool.query(`
+async function initDatabase() {
+  try {
+    // Create tables if they don't exist
+
+    // Users table
+    await pool.query(`
             CREATE TABLE IF NOT EXISTS USERS (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 email VARCHAR(255) UNIQUE NOT NULL,
@@ -49,8 +65,8 @@ async function initDatabase() {
             )
         `);
 
-        // Teams table
-        await pool.query(`
+    // Teams table
+    await pool.query(`
             CREATE TABLE IF NOT EXISTS TEAMS (
             id INT PRIMARY KEY AUTO_INCREMENT,
             name VARCHAR(100) UNIQUE NOT NULL,
@@ -61,8 +77,8 @@ async function initDatabase() {
             )
         `);
 
-        // Points table
-        await pool.query(`
+    // Points table
+    await pool.query(`
             CREATE TABLE IF NOT EXISTS POINTS (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 userId INT NOT NULL,
@@ -75,8 +91,8 @@ async function initDatabase() {
             )
         `);
 
-        // User-Teams relationship table
-        await pool.query(`
+    // User-Teams relationship table
+    await pool.query(`
             CREATE TABLE IF NOT EXISTS USER_TEAMS (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 userId INT NOT NULL,
@@ -88,8 +104,8 @@ async function initDatabase() {
             )
         `);
 
-        // Quests table
-        await pool.query(`
+    // Quests table
+    await pool.query(`
             CREATE TABLE IF NOT EXISTS QUESTS (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 name VARCHAR(255) NOT NULL,
@@ -102,8 +118,8 @@ async function initDatabase() {
             )
         `);
 
-        // Daily Quests table
-        await pool.query(`
+    // Daily Quests table
+    await pool.query(`
             CREATE TABLE IF NOT EXISTS DAILY_QUESTS (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 userId INT NOT NULL,
@@ -120,20 +136,24 @@ async function initDatabase() {
             )
         `);
 
-        // Ensure existing databases get the new column when upgrading
-        try {
-            await pool.query(`ALTER TABLE DAILY_QUESTS ADD COLUMN IF NOT EXISTS failedAttempts INT DEFAULT 0`);
-        } catch (e) {
-            // Some MySQL versions may not support IF NOT EXISTS in ALTER TABLE; try a safe fallback
-            try {
-                await pool.query(`ALTER TABLE DAILY_QUESTS ADD COLUMN failedAttempts INT DEFAULT 0`);
-            } catch (err) {
-                // If it fails (column already exists or unsupported), ignore and continue
-            }
-        }
+    // Ensure existing databases get the new column when upgrading
+    try {
+      await pool.query(
+        `ALTER TABLE DAILY_QUESTS ADD COLUMN IF NOT EXISTS failedAttempts INT DEFAULT 0`,
+      );
+    } catch (e) {
+      // Some MySQL versions may not support IF NOT EXISTS in ALTER TABLE; try a safe fallback
+      try {
+        await pool.query(
+          `ALTER TABLE DAILY_QUESTS ADD COLUMN failedAttempts INT DEFAULT 0`,
+        );
+      } catch (err) {
+        // If it fails (column already exists or unsupported), ignore and continue
+      }
+    }
 
-        // Quest submissions table
-        await pool.query(`
+    // Quest submissions table
+    await pool.query(`
             CREATE TABLE IF NOT EXISTS QUEST_SUBMISSIONS (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 dailyQuestId INT NOT NULL,
@@ -144,8 +164,8 @@ async function initDatabase() {
             )
         `);
 
-        // Quests configuration table
-        await pool.query(`
+    // Quests configuration table
+    await pool.query(`
             CREATE TABLE IF NOT EXISTS QUEST_CONFIG (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 assignmentHour INT DEFAULT 10,
@@ -154,8 +174,8 @@ async function initDatabase() {
             )
         `);
 
-        // Global settings table
-        await pool.query(`
+    // Global settings table
+    await pool.query(`
             CREATE TABLE IF NOT EXISTS SETTINGS (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 settingKey VARCHAR(100) UNIQUE NOT NULL,
@@ -164,44 +184,49 @@ async function initDatabase() {
             )
         `);
 
-        console.log('\x1b[32mDatabase initialized successfully\x1b[0m');
+    console.log("\x1b[32mDatabase initialized successfully\x1b[0m");
 
-        // Check if there are any existing admin accounts
-        const [admins] = await pool.query('SELECT * FROM USERS WHERE role = "ADMIN" LIMIT 1');
+    // Check if there are any existing admin accounts
+    const [admins] = await pool.query(
+      'SELECT * FROM USERS WHERE role = "ADMIN" LIMIT 1',
+    );
 
-        // If no admin accounts exist, create a default admin account
-        if (admins.length === 0) {
-            // const bcrypt = require('bcrypt');
-            const bcrypt = require('bcryptjs');
-            const hashedPassword = await bcrypt.hash('admin123', 10);
+    // If no admin accounts exist, create a default admin account
+    if (admins.length === 0) {
+      // const bcrypt = require('bcrypt');
+      const bcrypt = require("bcryptjs");
+      const hashedPassword = await bcrypt.hash("admin123", 10);
 
-            await pool.query(`
+      await pool.query(
+        `
                 INSERT INTO USERS (email, password, role, firstName, lastName, isFirstLogin)
                 VALUES (?, ?, 'ADMIN', 'Admin', 'Système', FALSE)
-            `, ['admin@epitech.eu', hashedPassword]);
+            `,
+        ["admin@epitech.eu", hashedPassword],
+      );
 
-            console.log('\x1b[32mDefault admin account created\x1b[0m');
-        }
+      console.log("\x1b[32mDefault admin account created\x1b[0m");
+    }
 
-        // Initialize quest configuration if it doesn't exist
-        const [config] = await pool.query('SELECT * FROM QUEST_CONFIG LIMIT 1');
+    // Initialize quest configuration if it doesn't exist
+    const [config] = await pool.query("SELECT * FROM QUEST_CONFIG LIMIT 1");
 
-        // If no configuration exists, create a default one
-        if (config.length === 0) {
-            await pool.query(`
+    // If no configuration exists, create a default one
+    if (config.length === 0) {
+      await pool.query(`
                 INSERT INTO QUEST_CONFIG (assignmentHour, durationHours)
                 SELECT 10, 24
                 WHERE NOT EXISTS (SELECT 1 FROM QUEST_CONFIG)
             `);
-            console.log('\x1b[32mDefault quest configuration created\x1b[0m');
-        }
-    } catch (error) {
-        console.error('\x1b[31mError initializing database:\x1b[0m', error);
-        throw error;
+      console.log("\x1b[32mDefault quest configuration created\x1b[0m");
     }
+  } catch (error) {
+    console.error("\x1b[31mError initializing database:\x1b[0m", error);
+    throw error;
+  }
 }
 
 module.exports = {
-    pool,
-    initDatabase
+  pool,
+  initDatabase,
 };
