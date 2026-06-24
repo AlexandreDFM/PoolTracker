@@ -1,408 +1,417 @@
 name: Complete Production Deployment Pipeline
 
 env:
-    # GitHub Configuration
-    GITHUB_USERNAME: ${{ github.repository_owner }}
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # GitHub Configuration
+  GITHUB_USERNAME: ${{ github.repository_owner }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    # Kubernetes Configuration
-    KUBERNETES_URL: ${{ secrets.KUBERNETES_URL }}
-    KUBERNETES_SECRET: ${{ secrets.KUBERNETES_SECRET }}
+  # Kubernetes Configuration
+  KUBERNETES_URL: ${{ secrets.KUBERNETES_URL }}
+  KUBERNETES_SECRET: ${{ secrets.KUBERNETES_SECRET }}
 
-    # Container Registry
-    REGISTRY: ghcr.io
-    IMAGE_NAME: ${{ github.repository_owner }}/pool-tracker
+  # Container Registry
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/pool-tracker
 
-    # Production Database Secrets
-    DB_USER: ${{ secrets.DB_USER }}
-    DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-    JWT_SECRET: ${{ secrets.JWT_SECRET }}
-    SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-    MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+  # Production Database Secrets
+  DB_USER: ${{ secrets.DB_USER }}
+  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+  JWT_SECRET: ${{ secrets.JWT_SECRET }}
+  SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+  MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
 
-    # Let's Encrypt Configuration
-    LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}
+  # Let's Encrypt Configuration
+  LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}
 
 on:
-    push:
-        branches:
-            - main
-    workflow_dispatch:
-        inputs:
-            force_redeploy:
-                description: 'Force complete redeployment (including database)'
-                required: false
-                type: boolean
-                default: false
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      force_redeploy:
+        description: "Force complete redeployment (including database)"
+        required: false
+        type: boolean
+        default: false
 
 jobs:
-    # Build and push Docker image
-    build:
-        name: Build & Push Docker Image
-        permissions: write-all
-        runs-on: ubuntu-latest
-        outputs:
-            image_tag: ${{ steps.meta.outputs.tags }}
-            image_digest: ${{ steps.build.outputs.digest }}
-            image_version: ${{ steps.meta.outputs.version }}
-        steps:
-            - name: Checkout Repository
-              uses: actions/checkout@v4
+  # Build and push Docker image
+  build:
+    name: Build & Push Docker Image
+    permissions: write-all
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+      image_digest: ${{ steps.build.outputs.digest }}
+      image_version: ${{ steps.meta.outputs.version }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-            - name: Set up QEMU
-              uses: docker/setup-qemu-action@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
-            - name: Set up Docker Buildx
-              uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-            - name: Log in to Container Registry
-              uses: docker/login-action@v3
-              with:
-                  registry: ${{ env.REGISTRY }}
-                  username: ${{ env.GITHUB_USERNAME }}
-                  password: ${{ env.GITHUB_TOKEN }}
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.GITHUB_USERNAME }}
+          password: ${{ env.GITHUB_TOKEN }}
 
-            - name: Extract metadata
-              id: meta
-              uses: docker/metadata-action@v5
-              with:
-                  images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-                  tags: |
-                      type=ref,event=branch
-                      type=ref,event=pr
-                      type=semver,pattern={{version}}
-                      type=semver,pattern={{major}}.{{minor}}
-                      type=semver,pattern={{major}}
-                      type=sha,prefix={{branch}}-
-                      type=raw,value=latest,enable={{is_default_branch}}
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
 
-            - name: Build and push Docker image
-              id: build
-              uses: docker/build-push-action@v5
-              with:
-                  context: .
-                  platforms: linux/amd64,linux/arm64
-                  push: true
-                  tags: ${{ steps.meta.outputs.tags }}
-                  labels: ${{ steps.meta.outputs.labels }}
-                  cache-from: type=gha
-                  cache-to: type=gha,mode=max
-                  build-args: |
-                      NODE_ENV=production
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=production
 
-            - name: Verify Image Build
-              run: |
-                  echo "✅ Docker image built and pushed successfully!"
-                  echo "📦 Image digest: ${{ steps.build.outputs.digest }}"
-                  echo "🏷️ Image tags: ${{ steps.meta.outputs.tags }}"
+      - name: Verify Image Build
+        run: |
+          echo "✅ Docker image built and pushed successfully!"
+          echo "📦 Image digest: ${{ steps.build.outputs.digest }}"
+          echo "🏷️ Image tags: ${{ steps.meta.outputs.tags }}"
+          echo ""
+          echo "The following image will be deployed:"
+          echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+
+  # Deploy to Kubernetes
+  deploy:
+    name: Deploy to Production Kubernetes
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: production
+      url: https://pool.nice-tek.eu
+    concurrency:
+      group: production-deployment
+      cancel-in-progress: false
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Kubernetes context
+        uses: azure/k8s-set-context@v4
+        with:
+          method: service-account
+          k8s-url: ${{ env.KUBERNETES_URL }}
+          k8s-secret: ${{ env.KUBERNETES_SECRET }}
+
+      - name: Create/Update Namespace
+        run: kubectl apply -f deploy/kubernetes/namespaces.yaml
+
+      - name: Create Production Secrets
+        run: |
+          # Delete existing secret if it exists
+          kubectl delete secret pool-tracker-secret-prod -n pool-tracker-prod --ignore-not-found=true
+
+          # Create application secrets
+          kubectl create secret generic pool-tracker-secret-prod -n pool-tracker-prod \
+              --from-literal=DB_USER="${{ env.DB_USER }}" \
+              --from-literal=DB_PASSWORD="${{ env.DB_PASSWORD }}" \
+              --from-literal=JWT_SECRET="${{ env.JWT_SECRET }}" \
+              --from-literal=SESSION_SECRET="${{ env.SESSION_SECRET }}"
+
+      - name: Create Container Registry Secret
+        run: |
+          # Delete existing secret if it exists
+          kubectl delete secret github-container-registry -n pool-tracker-prod --ignore-not-found=true
+
+          # TODO: 
+          # Create GitHub Container Registry secret using a long-lived PAT
+          # GITHUB_TOKEN expires after the workflow run, causing image pull failures later.
+          # GHCR_READ_TOKEN is a PAT with read:packages scope that persists.
+          # kubectl create secret docker-registry github-container-registry -n pool-tracker-prod \
+          #     --docker-server=${{ env.REGISTRY }} \
+          #     --docker-username=${{ env.GITHUB_USERNAME }} \
+          #     --docker-password=${{ secrets.GHCR_READ_TOKEN }} \
+          #     --docker-email=${{ github.actor }}@users.noreply.github.com
+
+          kubectl create secret docker-registry github-container-registry -n pool-tracker-prod \
+              --docker-server=${{ env.REGISTRY }} \
+              --docker-username=${{ env.GITHUB_USERNAME }} \
+              --docker-password=${{ env.GITHUB_TOKEN }} \
+              --docker-email=${{ github.actor }}@users.noreply.github.com
+
+      - name: Apply ConfigMap
+        run: kubectl apply -f deploy/kubernetes/production/configmap.yaml
+
+      - name: Setup Let's Encrypt SSL Certificates
+        run: |
+          echo "Setting up Let's Encrypt SSL certificates..."
+
+          # Install cert-manager for Let's Encrypt
+          echo "Installing cert-manager..."
+          kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
+
+          # Wait for cert-manager to be ready
+          echo "Waiting for cert-manager to be ready..."
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=cert-manager -n cert-manager --timeout=300s
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=cainjector -n cert-manager --timeout=300s
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=webhook -n cert-manager --timeout=300s
+
+          # Setup Let's Encrypt issuers
+          echo "Creating Let's Encrypt ClusterIssuers..."
+          kubectl apply -f - << 'EOF'
+          apiVersion: cert-manager.io/v1
+          kind: ClusterIssuer
+          metadata:
+            name: letsencrypt-prod
+          spec:
+            acme:
+              server: https://acme-v02.api.letsencrypt.org/directory
+              email: ${{ secrets.LETSENCRYPT_EMAIL || 'admin@nice-tek.eu' }}
+              privateKeySecretRef:
+                name: letsencrypt-prod
+              solvers:
+              - http01:
+                  ingress:
+                    class: traefik
+          ---
+          apiVersion: cert-manager.io/v1
+          kind: ClusterIssuer
+          metadata:
+            name: letsencrypt-staging
+          spec:
+            acme:
+              server: https://acme-staging-v02.api.letsencrypt.org/directory
+              email: ${{ secrets.LETSENCRYPT_EMAIL || 'admin@nice-tek.eu' }}
+              privateKeySecretRef:
+                name: letsencrypt-staging
+              solvers:
+              - http01:
+                  ingress:
+                    class: traefik
+          EOF
+
+          echo "Let's Encrypt setup completed!"
+
+      - name: Deploy Database
+        run: |
+          echo "Deploying database components..."
+
+          # Check if PVC exists and has conflicting configuration
+          if kubectl get pvc mysql-data-pvc-prod -n pool-tracker-prod >/dev/null 2>&1; then
+              CURRENT_STORAGE_CLASS=$(kubectl get pvc mysql-data-pvc-prod -n pool-tracker-prod -o jsonpath='{.spec.storageClassName}' 2>/dev/null || echo "")
+              CURRENT_STORAGE_SIZE=$(kubectl get pvc mysql-data-pvc-prod -n pool-tracker-prod -o jsonpath='{.spec.resources.requests.storage}' 2>/dev/null || echo "")
+              echo "Found existing PVC with storage class: '$CURRENT_STORAGE_CLASS', size: '$CURRENT_STORAGE_SIZE'"
+
+              # Check if we need to recreate PVC due to immutable specs
+              if [ "$CURRENT_STORAGE_CLASS" != "local-path" ] || [ "$CURRENT_STORAGE_SIZE" != "10Gi" ]; then
+                  echo "PVC configuration mismatch. Current: $CURRENT_STORAGE_CLASS/$CURRENT_STORAGE_SIZE, Expected: local-path/10Gi"
+                  echo "Cleaning up existing database resources..."
+                  kubectl delete deployment pool-tracker-db-deployment-prod -n pool-tracker-prod --ignore-not-found=true
+                  kubectl delete pvc mysql-data-pvc-prod -n pool-tracker-prod --ignore-not-found=true
+                  kubectl delete service pool-tracker-db-service-prod -n pool-tracker-prod --ignore-not-found=true
+                  kubectl delete configmap mysql-init-config-prod -n pool-tracker-prod --ignore-not-found=true
+                  echo "Waiting for resources to be fully deleted..."
+                  sleep 20
+              else
+                  echo "PVC configuration is correct."
+              fi
+          else
+              echo "No existing PVC found. Proceeding with fresh deployment..."
+          fi
+
+          # Deploy database components
+          kubectl apply -f deploy/kubernetes/production/database.yaml
+
+          # Wait for database to be ready with appropriate timeout
+          echo "Waiting for database to be ready (this may take several minutes for MySQL initialization)..."
+          if ! kubectl wait --for=condition=ready --timeout=600s pod -l app=mysql -n pool-tracker-prod; then
+              echo "Database deployment timed out, checking status..."
+              kubectl get pods -l app=mysql -n pool-tracker-prod
+              kubectl describe pods -l app=mysql -n pool-tracker-prod
+              kubectl logs -l app=mysql -n pool-tracker-prod --tail=100 || echo "No logs available"
+              exit 1
+          fi
+
+          echo "Database is ready!"
+
+      - name: Deploy Application
+        run: |
+          echo "Deploying application with image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+          echo "Build digest: ${{ needs.build.outputs.image_digest }}"
+
+          # Apply Kubernetes manifests
+          kubectl apply -f deploy/kubernetes/production/deployment.yaml
+          kubectl apply -f deploy/kubernetes/production/service.yaml
+          kubectl apply -f deploy/kubernetes/production/ingress.yaml
+
+          # Force pod restart by patching with timestamp annotation
+          # This ensures new image is pulled even with 'latest' tag
+          echo "Forcing deployment restart to pull latest image..."
+          RESTART_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          kubectl patch deployment pool-tracker-deployment-prod -n pool-tracker-prod \
+            -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"kubectl.kubernetes.io/restartedAt\":\"$RESTART_TIME\"}}}}}"
+
+          echo "✅ Application deployed at: $RESTART_TIME"
+          echo "🔄 Rolling restart triggered to pull new image"
+
+      - name: Verify Rollout
+        run: |
+          echo "⏳ Waiting for deployment rollout..."
+
+          # Wait for the deployment to roll out with detailed output
+          if ! kubectl rollout status deployment/pool-tracker-deployment-prod -n pool-tracker-prod --timeout=600s; then
+              echo "❌ Rollout failed! Gathering debug information..."
+
+              echo ""
+              echo "=== Deployment Description ==="
+              kubectl describe deployment pool-tracker-deployment-prod -n pool-tracker-prod
+
+              echo ""
+              echo "=== Pod Status ==="
+              kubectl get pods -n pool-tracker-prod -l app=pool-tracker
+
+              echo ""
+              echo "=== Pod Descriptions ==="
+              kubectl describe pods -n pool-tracker-prod -l app=pool-tracker
+
+              echo ""
+              echo "=== Pod Logs (if available) ==="
+              for pod in $(kubectl get pods -n pool-tracker-prod -l app=pool-tracker -o name 2>/dev/null); do
+                  echo "--- Logs from $pod ---"
+                  kubectl logs $pod -n pool-tracker-prod --tail=100 --all-containers=true || echo "Could not fetch logs for $pod"
                   echo ""
-                  echo "The following image will be deployed:"
-                  echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+              done
 
-    # Deploy to Kubernetes
-    deploy:
-        name: Deploy to Production Kubernetes
-        runs-on: ubuntu-latest
-        needs: build
-        environment:
-            name: production
-            url: https://pool.nice-tek.eu
-        concurrency:
-            group: production-deployment
-            cancel-in-progress: false
-        steps:
-            - name: Checkout Repository
-              uses: actions/checkout@v4
+              echo ""
+              echo "=== Recent Events ==="
+              kubectl get events -n pool-tracker-prod --sort-by='.lastTimestamp' | tail -20
 
-            - name: Set up Kubernetes context
-              uses: azure/k8s-set-context@v4
-              with:
-                  method: service-account
-                  k8s-url: ${{ env.KUBERNETES_URL }}
-                  k8s-secret: ${{ env.KUBERNETES_SECRET }}
+              exit 1
+          fi
 
-            - name: Create/Update Namespace
-              run: kubectl apply -f deploy/kubernetes/namespaces.yaml
+          echo "✅ Deployment rolled out successfully!"
 
-            - name: Create Production Secrets
-              run: |
-                  # Delete existing secret if it exists
-                  kubectl delete secret pool-tracker-secret-prod -n pool-tracker-prod --ignore-not-found=true
+      - name: Request Let's Encrypt Certificate
+        run: |
+          echo "Requesting Let's Encrypt SSL certificate..."
 
-                  # Create application secrets
-                  kubectl create secret generic pool-tracker-secret-prod -n pool-tracker-prod \
-                      --from-literal=DB_USER="${{ env.DB_USER }}" \
-                      --from-literal=DB_PASSWORD="${{ env.DB_PASSWORD }}" \
-                      --from-literal=JWT_SECRET="${{ env.JWT_SECRET }}" \
-                      --from-literal=SESSION_SECRET="${{ env.SESSION_SECRET }}"
+          # Create certificate request
+          kubectl apply -f - << 'EOF'
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: pool-tracker-tls-cert
+            namespace: pool-tracker-prod
+          spec:
+            secretName: pool-tracker-tls-cert
+            issuerRef:
+              name: letsencrypt-prod
+              kind: ClusterIssuer
+            dnsNames:
+            - pool.nice-tek.eu
+            - www.pool.nice-tek.eu
+            duration: 2160h # 90 days
+            renewBefore: 360h # 15 days before expiry
+            subject:
+              organizations:
+              - PoolTracker
+              countries:
+              - FR
+              provinces:
+              - Provence-Alpes-Cote-d-Azur
+              localities:
+              - Nice
+            isCA: false
+            privateKey:
+              algorithm: RSA
+              encoding: PKCS1
+              size: 2048
+            usages:
+            - digital signature
+            - key encipherment
+            - server auth
+          EOF
 
-            - name: Create Container Registry Secret
-              run: |
-                  # Delete existing secret if it exists
-                  kubectl delete secret github-container-registry -n pool-tracker-prod --ignore-not-found=true
+          echo "Certificate request created. Let's Encrypt will automatically validate and issue the certificate."
+          echo "This process may take a few minutes..."
 
-                  # Create GitHub Container Registry secret
-                  kubectl create secret docker-registry github-container-registry -n pool-tracker-prod \
-                      --docker-server=${{ env.REGISTRY }} \
-                      --docker-username=${{ env.GITHUB_USERNAME }} \
-                      --docker-password=${{ env.GITHUB_TOKEN }} \
-                      --docker-email=${{ github.actor }}@users.noreply.github.com
+          # Wait a moment for the certificate request to be processed
+          sleep 30
 
-            - name: Apply ConfigMap
-              run: kubectl apply -f deploy/kubernetes/production/configmap.yaml
+          # Check certificate status
+          echo "Certificate status:"
+          kubectl get certificate -n pool-tracker-prod || true
+          kubectl get challenges -n pool-tracker-prod || true
 
-            - name: Setup Let's Encrypt SSL Certificates
-              run: |
-                  echo "Setting up Let's Encrypt SSL certificates..."
+      - name: Verify Deployment
+        run: |
+          echo "=== Deployment Status ==="
+          kubectl get all -n pool-tracker-prod
+          kubectl wait --for=condition=ready --timeout=300s pod -l app=pool-tracker -n pool-tracker-prod
 
-                  # Install cert-manager for Let's Encrypt
-                  echo "Installing cert-manager..."
-                  kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
+          echo ""
+          echo "=== SSL Certificate Status ==="
+          kubectl get certificate -n pool-tracker-prod
+          kubectl get certificateRequest -n pool-tracker-prod
 
-                  # Wait for cert-manager to be ready
-                  echo "Waiting for cert-manager to be ready..."
-                  kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=cert-manager -n cert-manager --timeout=300s
-                  kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=cainjector -n cert-manager --timeout=300s
-                  kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=webhook -n cert-manager --timeout=300s
+          # Check if certificate is ready
+          if kubectl get certificate pool-tracker-tls-cert -n pool-tracker-prod -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' | grep -q "True"; then
+              echo "✅ SSL Certificate is ready!"
+              kubectl get certificate pool-tracker-tls-cert -n pool-tracker-prod -o jsonpath='{.status.notAfter}' | xargs -I {} echo "Certificate expires: {}"
+          else
+              echo "⏳ SSL Certificate is still being issued by Let's Encrypt..."
+              echo "This is normal and may take up to 10 minutes."
+              echo "Certificate will be automatically available once validation completes."
+          fi
 
-                  # Setup Let's Encrypt issuers
-                  echo "Creating Let's Encrypt ClusterIssuers..."
-                  kubectl apply -f - << 'EOF'
-                  apiVersion: cert-manager.io/v1
-                  kind: ClusterIssuer
-                  metadata:
-                    name: letsencrypt-prod
-                  spec:
-                    acme:
-                      server: https://acme-v02.api.letsencrypt.org/directory
-                      email: ${{ secrets.LETSENCRYPT_EMAIL || 'admin@nice-tek.eu' }}
-                      privateKeySecretRef:
-                        name: letsencrypt-prod
-                      solvers:
-                      - http01:
-                          ingress:
-                            class: traefik
-                  ---
-                  apiVersion: cert-manager.io/v1
-                  kind: ClusterIssuer
-                  metadata:
-                    name: letsencrypt-staging
-                  spec:
-                    acme:
-                      server: https://acme-staging-v02.api.letsencrypt.org/directory
-                      email: ${{ secrets.LETSENCRYPT_EMAIL || 'admin@nice-tek.eu' }}
-                      privateKeySecretRef:
-                        name: letsencrypt-staging
-                      solvers:
-                      - http01:
-                          ingress:
-                            class: traefik
-                  EOF
+          echo ""
+          echo "=== Application Access ==="
+          echo "🌐 Application URL: https://pool.nice-tek.eu"
+          echo "🔒 SSL: Let's Encrypt (trusted certificate)"
+          echo "📊 Status: kubectl get all -n pool-tracker-prod"
 
-                  echo "Let's Encrypt setup completed!"
+  # Cleanup on failure
+  cleanup-on-failure:
+    name: Cleanup Failed Deployment
+    runs-on: ubuntu-latest
+    needs: [build, deploy]
+    if: failure() && inputs.force_redeploy
+    steps:
+      - name: Set up Kubernetes context
+        uses: azure/k8s-set-context@v4
+        with:
+          method: service-account
+          k8s-url: ${{ env.KUBERNETES_URL }}
+          k8s-secret: ${{ env.KUBERNETES_SECRET }}
 
-            - name: Deploy Database
-              run: |
-                  echo "Deploying database components..."
+      - name: Gather Debug Information
+        run: |
+          echo "=== Debug Information ==="
+          kubectl get all -n pool-tracker-prod
+          kubectl describe pods -n pool-tracker-prod
+          kubectl logs -l app=pool-tracker -n pool-tracker-prod --tail=100 || true
+          kubectl get events -n pool-tracker-prod --sort-by=.metadata.creationTimestamp
 
-                  # Check if PVC exists and has conflicting configuration
-                  if kubectl get pvc mysql-data-pvc-prod -n pool-tracker-prod >/dev/null 2>&1; then
-                      CURRENT_STORAGE_CLASS=$(kubectl get pvc mysql-data-pvc-prod -n pool-tracker-prod -o jsonpath='{.spec.storageClassName}' 2>/dev/null || echo "")
-                      CURRENT_STORAGE_SIZE=$(kubectl get pvc mysql-data-pvc-prod -n pool-tracker-prod -o jsonpath='{.spec.resources.requests.storage}' 2>/dev/null || echo "")
-                      echo "Found existing PVC with storage class: '$CURRENT_STORAGE_CLASS', size: '$CURRENT_STORAGE_SIZE'"
-
-                      # Check if we need to recreate PVC due to immutable specs
-                      if [ "$CURRENT_STORAGE_CLASS" != "local-path" ] || [ "$CURRENT_STORAGE_SIZE" != "10Gi" ]; then
-                          echo "PVC configuration mismatch. Current: $CURRENT_STORAGE_CLASS/$CURRENT_STORAGE_SIZE, Expected: local-path/10Gi"
-                          echo "Cleaning up existing database resources..."
-                          kubectl delete deployment pool-tracker-db-deployment-prod -n pool-tracker-prod --ignore-not-found=true
-                          kubectl delete pvc mysql-data-pvc-prod -n pool-tracker-prod --ignore-not-found=true
-                          kubectl delete service pool-tracker-db-service-prod -n pool-tracker-prod --ignore-not-found=true
-                          kubectl delete configmap mysql-init-config-prod -n pool-tracker-prod --ignore-not-found=true
-                          echo "Waiting for resources to be fully deleted..."
-                          sleep 20
-                      else
-                          echo "PVC configuration is correct."
-                      fi
-                  else
-                      echo "No existing PVC found. Proceeding with fresh deployment..."
-                  fi
-
-                  # Deploy database components
-                  kubectl apply -f deploy/kubernetes/production/database.yaml
-
-                  # Wait for database to be ready with appropriate timeout
-                  echo "Waiting for database to be ready (this may take several minutes for MySQL initialization)..."
-                  if ! kubectl wait --for=condition=ready --timeout=600s pod -l app=mysql -n pool-tracker-prod; then
-                      echo "Database deployment timed out, checking status..."
-                      kubectl get pods -l app=mysql -n pool-tracker-prod
-                      kubectl describe pods -l app=mysql -n pool-tracker-prod
-                      kubectl logs -l app=mysql -n pool-tracker-prod --tail=100 || echo "No logs available"
-                      exit 1
-                  fi
-
-                  echo "Database is ready!"
-
-            - name: Deploy Application
-              run: |
-                  echo "Deploying application with image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
-                  echo "Build digest: ${{ needs.build.outputs.image_digest }}"
-
-                  # Apply Kubernetes manifests
-                  kubectl apply -f deploy/kubernetes/production/deployment.yaml
-                  kubectl apply -f deploy/kubernetes/production/service.yaml
-                  kubectl apply -f deploy/kubernetes/production/ingress.yaml
-
-                  # Force pod restart by patching with timestamp annotation
-                  # This ensures new image is pulled even with 'latest' tag
-                  echo "Forcing deployment restart to pull latest image..."
-                  RESTART_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-                  kubectl patch deployment pool-tracker-deployment-prod -n pool-tracker-prod \
-                    -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"kubectl.kubernetes.io/restartedAt\":\"$RESTART_TIME\"}}}}}"
-
-                  echo "✅ Application deployed at: $RESTART_TIME"
-                  echo "🔄 Rolling restart triggered to pull new image"
-
-            - name: Verify Rollout
-              run: |
-                  echo "⏳ Waiting for deployment rollout..."
-
-                  # Wait for the deployment to roll out with detailed output
-                  if ! kubectl rollout status deployment/pool-tracker-deployment-prod -n pool-tracker-prod --timeout=600s; then
-                      echo "❌ Rollout failed! Gathering debug information..."
-
-                      echo ""
-                      echo "=== Deployment Description ==="
-                      kubectl describe deployment pool-tracker-deployment-prod -n pool-tracker-prod
-
-                      echo ""
-                      echo "=== Pod Status ==="
-                      kubectl get pods -n pool-tracker-prod -l app=pool-tracker
-
-                      echo ""
-                      echo "=== Pod Descriptions ==="
-                      kubectl describe pods -n pool-tracker-prod -l app=pool-tracker
-
-                      echo ""
-                      echo "=== Pod Logs (if available) ==="
-                      for pod in $(kubectl get pods -n pool-tracker-prod -l app=pool-tracker -o name 2>/dev/null); do
-                          echo "--- Logs from $pod ---"
-                          kubectl logs $pod -n pool-tracker-prod --tail=100 --all-containers=true || echo "Could not fetch logs for $pod"
-                          echo ""
-                      done
-
-                      echo ""
-                      echo "=== Recent Events ==="
-                      kubectl get events -n pool-tracker-prod --sort-by='.lastTimestamp' | tail -20
-
-                      exit 1
-                  fi
-
-                  echo "✅ Deployment rolled out successfully!"
-
-            - name: Request Let's Encrypt Certificate
-              run: |
-                  echo "Requesting Let's Encrypt SSL certificate..."
-
-                  # Create certificate request
-                  kubectl apply -f - << 'EOF'
-                  apiVersion: cert-manager.io/v1
-                  kind: Certificate
-                  metadata:
-                    name: pool-tracker-tls-cert
-                    namespace: pool-tracker-prod
-                  spec:
-                    secretName: pool-tracker-tls-cert
-                    issuerRef:
-                      name: letsencrypt-prod
-                      kind: ClusterIssuer
-                    dnsNames:
-                    - pool.nice-tek.eu
-                    - www.pool.nice-tek.eu
-                    duration: 2160h # 90 days
-                    renewBefore: 360h # 15 days before expiry
-                    subject:
-                      organizations:
-                      - PoolTracker
-                      countries:
-                      - FR
-                      provinces:
-                      - Provence-Alpes-Cote-d-Azur
-                      localities:
-                      - Nice
-                    isCA: false
-                    privateKey:
-                      algorithm: RSA
-                      encoding: PKCS1
-                      size: 2048
-                    usages:
-                    - digital signature
-                    - key encipherment
-                    - server auth
-                  EOF
-
-                  echo "Certificate request created. Let's Encrypt will automatically validate and issue the certificate."
-                  echo "This process may take a few minutes..."
-
-                  # Wait a moment for the certificate request to be processed
-                  sleep 30
-
-                  # Check certificate status
-                  echo "Certificate status:"
-                  kubectl get certificate -n pool-tracker-prod || true
-                  kubectl get challenges -n pool-tracker-prod || true
-
-            - name: Verify Deployment
-              run: |
-                  echo "=== Deployment Status ==="
-                  kubectl get all -n pool-tracker-prod
-                  kubectl wait --for=condition=ready --timeout=300s pod -l app=pool-tracker -n pool-tracker-prod
-
-                  echo ""
-                  echo "=== SSL Certificate Status ==="
-                  kubectl get certificate -n pool-tracker-prod
-                  kubectl get certificateRequest -n pool-tracker-prod
-
-                  # Check if certificate is ready
-                  if kubectl get certificate pool-tracker-tls-cert -n pool-tracker-prod -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' | grep -q "True"; then
-                      echo "✅ SSL Certificate is ready!"
-                      kubectl get certificate pool-tracker-tls-cert -n pool-tracker-prod -o jsonpath='{.status.notAfter}' | xargs -I {} echo "Certificate expires: {}"
-                  else
-                      echo "⏳ SSL Certificate is still being issued by Let's Encrypt..."
-                      echo "This is normal and may take up to 10 minutes."
-                      echo "Certificate will be automatically available once validation completes."
-                  fi
-
-                  echo ""
-                  echo "=== Application Access ==="
-                  echo "🌐 Application URL: https://pool.nice-tek.eu"
-                  echo "🔒 SSL: Let's Encrypt (trusted certificate)"
-                  echo "📊 Status: kubectl get all -n pool-tracker-prod"
-
-    # Cleanup on failure
-    cleanup-on-failure:
-        name: Cleanup Failed Deployment
-        runs-on: ubuntu-latest
-        needs: [build, deploy]
-        if: failure() && inputs.force_redeploy
-        steps:
-            - name: Set up Kubernetes context
-              uses: azure/k8s-set-context@v4
-              with:
-                  method: service-account
-                  k8s-url: ${{ env.KUBERNETES_URL }}
-                  k8s-secret: ${{ env.KUBERNETES_SECRET }}
-
-            - name: Gather Debug Information
-              run: |
-                  echo "=== Debug Information ==="
-                  kubectl get all -n pool-tracker-prod
-                  kubectl describe pods -n pool-tracker-prod
-                  kubectl logs -l app=pool-tracker -n pool-tracker-prod --tail=100 || true
-                  kubectl get events -n pool-tracker-prod --sort-by=.metadata.creationTimestamp
-
-            - name: Rollback if needed
-              if: inputs.force_redeploy == false
-              run: |
-                  echo "Attempting rollback..."
-                  kubectl rollout undo deployment/pool-tracker-deployment-prod -n pool-tracker-prod || true
+      - name: Rollback if needed
+        if: inputs.force_redeploy == false
+        run: |
+          echo "Attempting rollback..."
+          kubectl rollout undo deployment/pool-tracker-deployment-prod -n pool-tracker-prod || true
