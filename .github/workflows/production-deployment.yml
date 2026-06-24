@@ -141,11 +141,13 @@ jobs:
                   # Delete existing secret if it exists
                   kubectl delete secret github-container-registry -n pool-tracker-prod --ignore-not-found=true
 
-                  # Create GitHub Container Registry secret
+                  # Create GitHub Container Registry secret using a long-lived PAT
+                  # GITHUB_TOKEN expires after the workflow run, causing image pull failures later.
+                  # GHCR_READ_TOKEN is a PAT with read:packages scope that persists.
                   kubectl create secret docker-registry github-container-registry -n pool-tracker-prod \
                       --docker-server=${{ env.REGISTRY }} \
                       --docker-username=${{ env.GITHUB_USERNAME }} \
-                      --docker-password=${{ env.GITHUB_TOKEN }} \
+                      --docker-password=${{ secrets.GHCR_READ_TOKEN }} \
                       --docker-email=${{ github.actor }}@users.noreply.github.com
 
             - name: Apply ConfigMap
