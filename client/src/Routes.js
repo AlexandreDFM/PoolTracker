@@ -27,6 +27,7 @@ import StudentProfile from './pages/StudentProfile';
 import TeamDetails from './pages/TeamDetails';
 import StudentQuests from './pages/StudentQuests';
 import Dashboard from './pages/Dashboard';
+import ChangePassword from './pages/ChangePassword';
 
 // Admin pages
 import AdminUsers from './pages/admin/AdminUsers';
@@ -82,6 +83,15 @@ const AppRoutes = () => {
                 element={
                     <ProtectedRoute>
                         <StudentProfile />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/account/password"
+                element={
+                    <ProtectedRoute>
+                        <ChangePassword />
                     </ProtectedRoute>
                 }
             />

@@ -54,6 +54,11 @@ export const authService = {
         return response.data;
     },
 
+    changePassword: async (currentPassword, newPassword) => {
+        const response = await api.put('/auth/password', { currentPassword, newPassword });
+        return response.data;
+    },
+
     getProfile: async () => {
         const response = await api.get('/auth/profile');
         return response.data;
@@ -122,6 +127,12 @@ export const userService = {
     // Generic user management (including role changes)
     updateUser: async (id, userData) => {
         const response = await api.put(`/users/${id}`, userData);
+        return response.data;
+    },
+
+    // Reset a user's password (the account goes back to first login)
+    resetPassword: async (id) => {
+        const response = await api.post(`/users/${id}/reset-password`);
         return response.data;
     }
 };

@@ -89,7 +89,7 @@ If you have GitHub CLI installed:
 
 ```bash
 # Set repository (replace with your values)
-REPO="ItsKarmaOff/PoolTracker"
+REPO="epitech-nice/PoolTracker"
 
 # Kubernetes secrets
 gh secret set KUBERNETES_URL --repo $REPO --body "https://your-k8s-cluster.com:6443"
@@ -135,7 +135,7 @@ The pipeline includes verification steps that will:
 ### Manual Verification
 ```bash
 # Check if secrets exist in GitHub
-gh secret list --repo ItsKarmaOff/PoolTracker
+gh secret list --repo epitech-nice/PoolTracker
 
 # Test Kubernetes connectivity
 kubectl cluster-info --context your-context
@@ -174,7 +174,7 @@ echo "your-encoded-secret" | base64 -d
 ### Debug Commands:
 ```bash
 # View workflow logs
-gh run list --repo ItsKarmaOff/PoolTracker
+gh run list --repo epitech-nice/PoolTracker
 gh run view [run-id] --log
 
 # Check deployment status
@@ -188,7 +188,7 @@ Once all secrets are configured:
 
 1. **Push to main branch** or **feature/deploy-prod**
 2. **Monitor workflow** in Actions tab
-3. **Verify deployment** at https://pool-tracker.fr
+3. **Verify deployment** at https://pool.nice-tek.eu
 4. **Check logs** if issues occur
 
 Your production deployment pipeline is now fully configured with secure secret management! 🎉

@@ -96,7 +96,8 @@ server/
 
 ### Authentication
 - `POST /api/auth/login` - User login
-- `POST /api/auth/set-password` - Set/reset password
+- `POST /api/auth/set-password` - Set the initial password (first login, requires the setup token returned by login)
+- `PUT /api/auth/password` - Change the connected user's password (current + new password)
 - `GET /api/auth/profile` - Get connected user profile
 
 ### Students
@@ -128,6 +129,7 @@ server/
 - `GET /api/users` - List all users (admin)
 - `GET /api/users/by-role/:role` - List users by role (admin)
 - Various endpoints for managing different user roles (ADMIN, APE, AER)
+- `POST /api/users/:id/reset-password` - Reset a user's password: the account goes back to first login (ADMIN for every account, APE for AER and STUDENT)
 
 ## Security
 
@@ -146,7 +148,7 @@ On first startup, a default admin account is created:
 
 This only happens when the database contains no admin account.
 
-**Change this password after the first login.**
+**Change this password after the first login** ("Password" in the menu).
 
 ## Development
 

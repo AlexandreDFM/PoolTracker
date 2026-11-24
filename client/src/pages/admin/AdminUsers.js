@@ -22,7 +22,7 @@ import useRandColor from '../../hook/useRandColor';
 import { useAuth } from '../../contexts/AuthContext';
 
 const AdminUsers = () => {
-    const { isAdmin } = useAuth();
+    const { isAdmin, user: currentUser } = useAuth();
     const [color] = useRandColor();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -243,6 +243,23 @@ const AdminUsers = () => {
         }
     };
 
+    const handleResetPassword = async (user) => {
+        if (!window.confirm(
+            `Reset the password of ${user.email}?\n\n` +
+            'Their current password stops working. They will set a new one with "First login" on the login page.'
+        )) {
+            return;
+        }
+
+        try {
+            await userService.resetPassword(user.id);
+            toast.success(`Password reset for ${user.email}`);
+        } catch (error) {
+            console.error('\x1b[31mError resetting password:\x1b[0m', error);
+            toast.error(error.response?.data?.message || 'Error resetting password');
+        }
+    };
+
     const handleFilterChange = (e) => {
         setSelectedUserType(e.target.value);
     };
@@ -359,6 +376,15 @@ const AdminUsers = () => {
                                             >
                                                 Edit
                                             </button>
+                                            {user.id !== currentUser?.id && (
+                                                <button
+                                                    className="btn-edit"
+                                                    onClick={() => handleResetPassword(user)}
+                                                    title="The user will set a new password at the next login"
+                                                >
+                                                    Reset password
+                                                </button>
+                                            )}
                                             <button
                                                 className="btn-delete"
                                                 onClick={() => handleDeleteUser(user)}
