@@ -151,6 +151,44 @@ exports.setPassword = async (req, res) => {
     }
 };
 
+// Change the password of the connected user
+exports.changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+
+        if (typeof currentPassword !== 'string' || !currentPassword) {
+            return res.status(400).json({ message: 'Current password is required' });
+        }
+        if (typeof newPassword !== 'string' || newPassword.length < MIN_PASSWORD_LENGTH) {
+            return res.status(400).json({ message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
+        }
+
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const isPasswordValid = user.password
+            ? await User.verifyPassword(currentPassword, user.password)
+            : false;
+        if (!isPasswordValid) {
+            // 400, not 401: the session itself is valid
+            return res.status(400).json({ message: 'Current password is incorrect' });
+        }
+
+        if (currentPassword === newPassword) {
+            return res.status(400).json({ message: 'The new password must be different from the current one' });
+        }
+
+        await User.update(user.id, { password: newPassword });
+
+        res.status(200).json({ message: 'Password changed successfully' });
+    } catch (error) {
+        console.error('\x1b[31mPassword change error:\x1b[0m', error);
+        res.status(500).json({ message: 'Server error while changing password' });
+    }
+};
+
 // Get the connected user's profile
 exports.getProfile = async (req, res) => {
     try {

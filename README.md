@@ -101,7 +101,9 @@ On the first startup, a default admin account is created:
 
 This only happens when the database contains no admin account.
 
-**Change this password after the first login.**
+**Change this password after the first login** ("Password" in the menu).
+
+Any user can change their password from "Password" in the menu. An admin (or an APE, for AER and student accounts) can reset a forgotten password from the Users page: the account goes back to first login.
 
 ### User Roles
 

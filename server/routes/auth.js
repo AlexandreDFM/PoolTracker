@@ -22,8 +22,11 @@ const { authenticateJWT } = require('../middlewares/auth');
 // Authentication route (login)
 router.post('/login', authController.login);
 
-// Route to set/reset password
+// Route to set the initial password (first login)
 router.post('/set-password', authController.setPassword);
+
+// Route to change the connected user's password
+router.put('/password', authenticateJWT, authController.changePassword);
 
 // Route to get the connected user's profile
 router.get('/profile', authenticateJWT, authController.getProfile);

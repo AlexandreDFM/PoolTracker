@@ -256,6 +256,36 @@ exports.updateUser = async (req, res) => {
     }
 };
 
+// Reset a user's password: the account goes back to the first-login flow
+exports.resetPassword = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (user.id === req.user.id) {
+            return res.status(400).json({ message: 'Use "Change password" to change your own password' });
+        }
+
+        // Same hierarchy as canManageAccountType: only ADMIN can manage ADMIN and APE accounts
+        if (req.user.role !== 'ADMIN' && (user.role === 'ADMIN' || user.role === 'APE')) {
+            return res.status(403).json({
+                message: `Access denied. You don't have permission to manage ${user.role} accounts.`
+            });
+        }
+
+        await User.update(user.id, { password: null, isFirstLogin: true });
+
+        res.status(200).json({ message: 'Password reset. The user will set a new one at the next login (first login).' });
+    } catch (error) {
+        console.error('\x1b[31mError resetting password:\x1b[0m', error);
+        res.status(500).json({ message: 'Server error while resetting password' });
+    }
+};
+
 // Helper function to delete a user with a specific role
 async function deleteUserWithRole(req, res, role) {
     try {
