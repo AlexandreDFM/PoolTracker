@@ -80,6 +80,12 @@ spec:
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
+          # Leave time for the ingress to stop sending requests before nginx
+          # and Node stop (no cut connection during a rollout)
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]
           ports:
             - name: http
               containerPort: 8080

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #
-# Prints the KUBE_CONFIG GitHub secret: a kubeconfig for the github-deployer
+# Prints the PRD_KUBE_CONFIG or PPD_KUBE_CONFIG GitHub secret: a kubeconfig for the github-deployer
 # account (k8s/rbac/deployer.yaml), base64-encoded on one line.
 #
 # Usage (with an admin kubeconfig, after applying deployer.yaml):
 #   ./k8s/rbac/make-kubeconfig.sh https://<api-server>:6443
-#   ./k8s/rbac/make-kubeconfig.sh https://<api-server>:6443 | gh secret set KUBE_CONFIG --env production
+#   ./k8s/rbac/make-kubeconfig.sh https://<api-server>:6443 | gh secret set PRD_KUBE_CONFIG
 #   NAMESPACE=pool-tracker-staging ./k8s/rbac/make-kubeconfig.sh https://<api-server>:6443 \
-#     | gh secret set KUBE_CONFIG --env staging
+#     | gh secret set PPD_KUBE_CONFIG
 #
 set -euo pipefail
 
