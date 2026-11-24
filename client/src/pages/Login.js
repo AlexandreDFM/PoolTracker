@@ -28,7 +28,7 @@ const Login = () => {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isFirstConnection, setIsFirstConnection] = useState(false);
-    const [userId, setUserId] = useState(null);
+    const [setupToken, setSetupToken] = useState(null);
     const [loading, setLoading] = useState(false);
     const [isFirstLoginMode, setIsFirstLoginMode] = useState(false);
 
@@ -60,7 +60,7 @@ const Login = () => {
             if (result.requiresPasswordSet) {
                 // First login, the user must set their password
                 setIsFirstConnection(true);
-                setUserId(result.userId);
+                setSetupToken(result.setupToken);
                 toast.info('First login: please set your password');
             } else if (result.success) {
                 toast.success('Login successful');
@@ -96,7 +96,7 @@ const Login = () => {
 
         setLoading(true);
         try {
-            const result = await setUserPassword(userId, newPassword);
+            const result = await setUserPassword(setupToken, newPassword);
 
             if (result.success) {
                 toast.success('Password set successfully');

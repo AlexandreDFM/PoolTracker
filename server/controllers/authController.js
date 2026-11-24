@@ -20,6 +20,19 @@ const jwt = require('jsonwebtoken');
 // Token validity period: 24h
 const TOKEN_EXPIRY = '24h';
 
+// First-login token: only allows setting the initial password
+const SETUP_TOKEN_PURPOSE = 'set-password';
+const SETUP_TOKEN_EXPIRY = '10m';
+const MIN_PASSWORD_LENGTH = 6;
+
+const generateSetupToken = (user) => {
+    return jwt.sign(
+        { id: user.id, purpose: SETUP_TOKEN_PURPOSE },
+        process.env.JWT_SECRET,
+        { expiresIn: SETUP_TOKEN_EXPIRY }
+    );
+};
+
 // Generate a JWT token
 const generateToken = (user) => {
     return jwt.sign(
@@ -49,7 +62,7 @@ exports.login = async (req, res) => {
             return res.status(200).json({
                 message: 'First login detected',
                 requiresPasswordSet: true,
-                userId: user.id
+                setupToken: generateSetupToken(user)
             });
         }
 
@@ -77,13 +90,37 @@ exports.login = async (req, res) => {
     }
 };
 
-// Set or reset password
+// Set the initial password (first login only)
 exports.setPassword = async (req, res) => {
     try {
-        const { userId, password } = req.body;
+        const { setupToken, password } = req.body;
+
+        let payload;
+        try {
+            payload = jwt.verify(setupToken, process.env.JWT_SECRET, { algorithms: ['HS256'] });
+        } catch (err) {
+            return res.status(401).json({ message: 'Invalid or expired first-login session. Please log in again.' });
+        }
+        if (payload.purpose !== SETUP_TOKEN_PURPOSE) {
+            return res.status(401).json({ message: 'Invalid or expired first-login session. Please log in again.' });
+        }
+
+        if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
+            return res.status(400).json({ message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
+        }
+
+        const existingUser = await User.findById(payload.id);
+        if (!existingUser) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // A setup token can never overwrite an existing password
+        if (existingUser.password) {
+            return res.status(409).json({ message: 'Password already set. Please log in with your password.' });
+        }
 
         // Update the password and mark first login as completed
-        const updated = await User.update(userId, {
+        const updated = await User.update(existingUser.id, {
             password,
             isFirstLogin: false
         });
@@ -91,6 +128,8 @@ exports.setPassword = async (req, res) => {
         if (!updated) {
             return res.status(404).json({ message: 'User not found' });
         }
+
+        const userId = existingUser.id;
 
         // Get the updated user
         const user = await User.findById(userId);

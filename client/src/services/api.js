@@ -49,8 +49,8 @@ export const authService = {
         }
     },
 
-    setPassword: async (userId, password) => {
-        const response = await api.post('/auth/set-password', { userId, password });
+    setPassword: async (setupToken, password) => {
+        const response = await api.post('/auth/set-password', { setupToken, password });
         return response.data;
     },
 
