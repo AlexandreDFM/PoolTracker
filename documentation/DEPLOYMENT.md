@@ -13,7 +13,7 @@ browser ─HTTPS─> Traefik (Ingress pool-tracker-web, middlewares)
                          └─> pod pool-tracker-web :8080
                                nginx: client build, /api -> Node :3001
                                                       └─> Service pool-tracker-db:3306
-                                                            └─> pod pool-tracker-db (MySQL 8.0)
+                                                            └─> pod pool-tracker-db (MySQL 8.4)
                                                                   └─> PVC pool-tracker-db-data
 CronJob pool-tracker-db-backup (production, 03:00 UTC) ──> PVC pool-tracker-backups
 ```

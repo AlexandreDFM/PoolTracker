@@ -43,7 +43,7 @@ docker-compose -f docker-compose.prod.yml --env-file .env.prod up --build
 - ✅ Resource optimization
 
 ### **Database Setup**
-- ✅ MySQL 8.0.35 with production configuration
+- ✅ MySQL 8.4 LTS with production configuration
 - ✅ Persistent volume for data
 - ✅ Automated schema initialization
 - ✅ Performance tuning parameters

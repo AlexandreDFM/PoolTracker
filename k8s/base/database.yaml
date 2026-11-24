@@ -1,4 +1,5 @@
-# MySQL: one replica on a ReadWriteOnce volume (Recreate strategy).
+# MySQL 8.4 LTS: one replica on a ReadWriteOnce volume (Recreate strategy).
+# 8.4 upgrades a data directory written by 8.0 in place on first start.
 # local-path-retain: deleting the PVC keeps the data directory on the node.
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -46,7 +47,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: mysql
-          image: mysql:8.0.35
+          image: mysql:8.4.13
           envFrom:
             # MYSQL_ROOT_PASSWORD, MYSQL_USER, MYSQL_PASSWORD (GitHub Secrets).
             # They only act when the data directory is initialized.
@@ -61,7 +62,10 @@ spec:
           args:
             - "--character-set-server=utf8mb4"
             - "--collation-server=utf8mb4_unicode_ci"
-            - "--default-authentication-plugin=mysql_native_password"
+            # Users created by MySQL 8.0 authenticate with mysql_native_password,
+            # disabled by default since 8.4 (removed in 9.0). New users get
+            # caching_sha2_password.
+            - "--mysql-native-password=ON"
             - "--innodb-buffer-pool-size=256M"
             - "--max-connections=200"
             # Prevent MySQL from closing idle pool connections (default is 28800s = 8h).
