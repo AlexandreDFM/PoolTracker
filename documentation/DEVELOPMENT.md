@@ -3,7 +3,7 @@
 The development stack (`docker-compose.dev.yml`) runs the source code directly, without building images:
 
 - **Client**: Vite dev server with hot reload (proxies `/api` to the server container)
-- **Server**: Node.js with `nodemon` (restarts on file changes)
+- **Server**: Node.js with `node --watch` (restarts on file changes)
 - **Database**: MySQL, data stored in `./db`
 - **phpMyAdmin**: database management UI
 
