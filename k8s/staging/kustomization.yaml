@@ -1,0 +1,33 @@
+# Staging (pool.ppd.nice-tek.eu), deployed from the develop branch:
+# kubectl apply -k k8s/staging. Same manifests as production, smaller
+# volume, own database name, no backup job.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: pool-tracker-staging
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: pool-tracker
+      app.kubernetes.io/managed-by: kustomize
+    includeSelectors: false
+    includeTemplates: true
+resources:
+  - ../base
+  - ingress.yaml
+patches:
+  - target:
+      kind: ConfigMap
+      name: pool-tracker-config
+    patch: |-
+      - op: replace
+        path: /data/DB_NAME
+        value: pool_tracker_staging
+  - target:
+      kind: PersistentVolumeClaim
+      name: pool-tracker-db-data
+    patch: |-
+      - op: replace
+        path: /spec/resources/requests/storage
+        value: 2Gi
+images:
+  - name: ghcr.io/epitech-nice/pool-tracker
+    newTag: latest

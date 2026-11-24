@@ -1,0 +1,15 @@
+# Constants that belong to the code. Settings that may change per deployment
+# come from GitHub Variables (ConfigMap pool-tracker-app-config, created by
+# the workflow), secrets from GitHub Secrets (Secrets pool-tracker-app and
+# pool-tracker-db).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pool-tracker-config
+  labels:
+    app.kubernetes.io/name: pool-tracker
+    app.kubernetes.io/component: web
+data:
+  NODE_ENV: "production"
+  DB_HOST: "pool-tracker-db"
+  DB_NAME: "pool_tracker_prod"

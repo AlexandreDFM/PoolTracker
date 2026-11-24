@@ -16,11 +16,12 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 # ── Configuration ────────────────────────────────────────────────────────────
-NAMESPACE="pool-tracker-prod"
-DB_DEPLOYMENT="pool-tracker-db-deployment-prod"
-DB_SELECTOR="app=mysql,environment=production"
-APP_DEPLOYMENT="pool-tracker-deployment-prod"
-DB_NAME="pool_tracker_prod"
+# Staging: NAMESPACE=pool-tracker-staging DB_NAME=pool_tracker_staging
+NAMESPACE="${NAMESPACE:-pool-tracker-prod}"
+DB_DEPLOYMENT="pool-tracker-db"
+DB_SELECTOR="app.kubernetes.io/name=pool-tracker,app.kubernetes.io/component=database"
+APP_DEPLOYMENT="pool-tracker-web"
+DB_NAME="${DB_NAME:-pool_tracker_prod}"
 DB_USER="root"
 BACKUP_DIR="$HOME/pooltracker-backups"
 KUBECTL="sudo kubectl"
