@@ -14,7 +14,7 @@
  * └────────────────────────────────────────────────────────────────────────────
  */
 
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useState, useEffect, useContext } from 'react';
 import { authService } from '../services/api';
 
 const AuthContext = createContext();
@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }) => {
                 localStorage.removeItem('token');
                 try {
                     await authService.migrateStoredToken(storedToken);
-                } catch (error) {
+                } catch {
                     // Expired or revoked: the user logs in again
                 }
             }
@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }) => {
             try {
                 const { user } = await authService.getProfile();
                 setUser(user);
-            } catch (error) {
+            } catch {
                 // No valid session
                 setUser(null);
             }

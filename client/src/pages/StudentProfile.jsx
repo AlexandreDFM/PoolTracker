@@ -241,7 +241,7 @@ const StudentProfile = () => {
                     </div>
                 ) : (
                     <div className="empty-history-message">
-                        <p>You haven't received any points yet.</p>
+                        <p>You haven&apos;t received any points yet.</p>
                     </div>
                 )}
             </div>
