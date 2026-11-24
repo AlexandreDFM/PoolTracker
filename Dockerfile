@@ -1,79 +1,59 @@
 # Multi-stage Dockerfile for PoolTracker
-# This builds a static image containing both the React frontend and Node.js backend
+# One image with the React frontend (served by nginx) and the Node.js backend.
 
-# Stage 1: Build the React frontend
-FROM node:20.18-alpine AS frontend-build
+# Stage 1: Build the React frontend (Vite)
+FROM node:24-alpine AS frontend-build
 
 WORKDIR /app/client
 
-# Copy package files for client
-COPY client/package*.json ./
+# Install exactly the versions of the lockfile
+COPY client/package.json client/package-lock.json ./
+RUN npm ci
 
-# Install client dependencies
-RUN npm install
-
-# Copy client source code
 COPY client/ ./
-
-# Build the React app for production
 RUN npm run build
 
-# Stage 2: Build the Node.js backend
-FROM node:18-alpine AS backend-build
+# Stage 2: Install the backend production dependencies
+FROM node:24-alpine AS backend-build
 
 WORKDIR /app/server
 
-# Copy package files for server
-COPY server/package*.json ./
+COPY server/package.json server/package-lock.json ./
+RUN npm ci --omit=dev
 
-# Install only production dependencies for the server
-RUN npm install --only=production
-
-# Copy server source code
 COPY server/ ./
 
 # Stage 3: Final production image
-FROM node:18-alpine AS production
+FROM node:24-alpine AS production
 
-# Install nginx and curl for serving static files and health checks
+# nginx serves the static files and proxies /api to Node; curl for the health check
 RUN apk add --no-cache nginx curl
 
-# Create app directory
 WORKDIR /app
 
-# Copy built React app from frontend-build stage
 COPY --from=frontend-build /app/client/build /usr/share/nginx/html
-
-# Copy server files from backend-build stage
 COPY --from=backend-build /app/server ./server
 
-# Remove default nginx configuration
-RUN rm -f /etc/nginx/conf.d/default.conf /etc/nginx/sites-enabled/default /etc/nginx/sites-available/default 2>/dev/null || true
-
-# Copy nginx configuration files
+RUN rm -f /etc/nginx/conf.d/default.conf /etc/nginx/http.d/default.conf
 COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
 COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
-
-# Copy and set up startup script
 COPY docker/start.sh /app/start.sh
 
-# Create required directories and set permissions
-RUN mkdir -p /var/lib/nginx/tmp /var/log/nginx && \
-    chown -R nginx:nginx /var/lib/nginx /var/log/nginx /usr/share/nginx/html
+# Everything runs as the unprivileged "node" user (uid 1000) of the base image:
+# nginx listens on 8080 and writes its pid and temp files under /tmp
+RUN chmod +x /app/start.sh && \
+    mkdir -p /var/log/nginx /var/lib/nginx && \
+    chown -R node:node /var/log/nginx /var/lib/nginx
 
-# Make startup script executable
-RUN chmod +x /app/start.sh
+USER node
 
-# Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3001
 
-# Expose ports (HTTP only - SSL handled by Kubernetes Ingress)
-EXPOSE 80 3001
+# HTTP only: TLS ends at the Kubernetes ingress (Traefik)
+EXPOSE 8080
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost/health || exit 1
+  CMD curl -fs http://localhost:8080/api/health/live || exit 1
 
-# Start the application
 CMD ["/app/start.sh"]

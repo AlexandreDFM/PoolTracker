@@ -1,10 +1,10 @@
-FROM node:20.18-alpine AS build
+FROM node:24-alpine AS build
 
 WORKDIR /app
 
-COPY client/package*.json ./
+COPY client/package.json client/package-lock.json ./
 
-RUN npm install
+RUN npm ci
 
 COPY client/ ./
 

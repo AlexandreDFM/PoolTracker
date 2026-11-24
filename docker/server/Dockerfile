@@ -1,11 +1,13 @@
-FROM node:20.18-alpine
+FROM node:24-alpine
 
 WORKDIR /app
 
-COPY server/package*.json ./
+COPY server/package.json server/package-lock.json ./
 
-RUN npm install
+RUN npm ci --omit=dev
 
 COPY server/ ./
 
-CMD ["npm", "start"]
+USER node
+
+CMD ["node", "server.js"]

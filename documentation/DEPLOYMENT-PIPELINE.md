@@ -30,7 +30,7 @@ Runs in the GitHub environment `production`, one deployment at a time.
 | Deploy Application | Applies the deployment, service and ingress, then restarts the deployment so the new `latest` image is pulled |
 | Verify Rollout | Waits for the rollout; prints the deployment, pods, logs and events on failure |
 | Verify Deployment | Lists the resources and reports the TLS certificate status |
-| Smoke tests | Through `https://pool.nice-tek.eu`: `/health` and `/` answer 200, `/api/auth/profile` answers 401 (the Node backend responds), HSTS header present |
+| Smoke tests | Through `https://pool.nice-tek.eu`: `/health`, `/` and `/api/health` (Node and the database) answer 200, `/api/auth/profile` answers 401, HSTS header present |
 
 ## Rollback
 

@@ -17,7 +17,8 @@ spec:
         - name: http
           protocol: TCP
           port: 80
-          targetPort: 80
+          # Named port: 8080 in the current image (80 in older pods during a rollout)
+          targetPort: http
         - name: api
           protocol: TCP
           port: 3001
