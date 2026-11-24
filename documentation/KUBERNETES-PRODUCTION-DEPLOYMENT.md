@@ -1,11 +1,10 @@
 # PoolTracker Kubernetes Production Deployment
 
-This directory contains all the Kubernetes manifests and scripts needed to deploy PoolTracker to production.
+The Kubernetes manifests live in `deploy/kubernetes/`. Production is deployed by the GitHub Actions workflow `.github/workflows/production-deployment.yml` on every push to `main`.
 
 ## 📁 Files Overview
 
 - **`namespaces.yaml`** - Production namespace configuration
-- **`deploy-production.sh`** - Automated deployment script
 - **`production/`** - Production environment manifests
   - **`deployment.yaml`** - Main application deployment
   - **`service.yaml`** - Service configuration
@@ -21,16 +20,14 @@ This directory contains all the Kubernetes manifests and scripts needed to deplo
 1. **Kubernetes cluster** with Traefik ingress controller
 2. **kubectl** configured and connected to your cluster
 3. **GitHub Container Registry access** for the Docker image
-4. **DNS** pointing `pool-tracker.fr` and `www.pool-tracker.fr` to your cluster
+4. **DNS** pointing `pool.nice-tek.eu` and `www.pool.nice-tek.eu` to your cluster
 
 ### Deploy to Production
 
-```bash
-# Navigate to kubernetes directory
-cd deploy/kubernetes
+Merge to `main`, or run the workflow manually:
 
-# Run the deployment script
-./deploy-production.sh
+```bash
+gh workflow run production-deployment.yml --repo epitech-nice/PoolTracker
 ```
 
 ## 🔧 Manual Deployment Steps
@@ -60,8 +57,8 @@ kubectl apply -f production/secret.yaml
 ```bash
 kubectl create secret docker-registry github-container-registry \
   --docker-server=ghcr.io \
-  --docker-username=ItsKarmaOff \
-  --docker-password=<your-github-token> \
+  --docker-username=<github-username> \
+  --docker-password=<PAT with read:packages> \
   --docker-email=<your-email> \
   --namespace=pool-tracker-prod
 ```
@@ -91,7 +88,7 @@ kubectl apply -f production/ingress.yaml
 ## 📊 Production Configuration
 
 ### Application Settings
-- **Replicas**: 3 (for high availability)
+- **Replicas**: 1 (the quest scheduler runs in the server process; more replicas would assign quests several times)
 - **Resources**: 256Mi-512Mi RAM, 100m-300m CPU
 - **Health Checks**: Liveness, readiness, and startup probes
 - **Port**: 80 (nginx frontend) + 3001 (Node.js backend)
@@ -132,7 +129,7 @@ kubectl scale deployment pool-tracker-deployment-prod --replicas=5 -n pool-track
 ### Update Application
 ```bash
 # Update image tag
-kubectl set image deployment/pool-tracker-deployment-prod pool-tracker=ghcr.io/itskarmaoff/pool-tracker:v1.1.0 -n pool-tracker-prod
+kubectl set image deployment/pool-tracker-deployment-prod pool-tracker=ghcr.io/epitech-nice/pool-tracker:v1.1.0 -n pool-tracker-prod
 
 # Or apply updated deployment.yaml
 kubectl apply -f production/deployment.yaml

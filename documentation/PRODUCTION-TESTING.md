@@ -7,7 +7,6 @@ This guide helps you test the complete production setup locally using Docker Com
 - **`docker-compose.prod.yml`** - Production-like Docker Compose setup
 - **`.env.prod.template`** - Environment variables template
 - **`test-production.sh`** - Automated production testing script
-- **`db/init/01-init-production.sql`** - Production database schema
 - **`nginx/prod.conf`** - Production-like nginx configuration (for SSL testing)
 
 ## 🎯 Quick Start
@@ -272,10 +271,9 @@ After successful testing:
 
 ```bash
 # Tag and push to registry
-docker tag pool-tracker:latest ghcr.io/itskarmaoff/pool-tracker:v1.0.0
-docker push ghcr.io/itskarmaoff/pool-tracker:v1.0.0
+docker tag pool-tracker:latest ghcr.io/epitech-nice/pool-tracker:v1.0.0
+docker push ghcr.io/epitech-nice/pool-tracker:v1.0.0
 
-# Deploy to Kubernetes
-cd deploy/kubernetes
-./deploy-production.sh
+# Deploy to Kubernetes: merge to main (GitHub Actions workflow
+# .github/workflows/production-deployment.yml)
 ```

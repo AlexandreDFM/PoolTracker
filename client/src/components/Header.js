@@ -34,7 +34,7 @@ const Header = () => {
     const navigate = useNavigate();
     const isMobile = window.innerWidth <= 768;
     const [isOpen, setIsOpen] = useState(false);
-    const { isDarkMode, toggleDarkMode, isHalloween, isChristmas, setSeasonalTheme, globalSeasonalTheme } = useTheme();
+    const { isDarkMode, toggleDarkMode, setSeasonalTheme, globalSeasonalTheme } = useTheme();
 
     const getRoleDisplay = () => {
         if (isAdmin) return "Admin";

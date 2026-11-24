@@ -222,16 +222,11 @@ jobs:
               CURRENT_STORAGE_SIZE=$(kubectl get pvc mysql-data-pvc-prod -n pool-tracker-prod -o jsonpath='{.spec.resources.requests.storage}' 2>/dev/null || echo "")
               echo "Found existing PVC with storage class: '$CURRENT_STORAGE_CLASS', size: '$CURRENT_STORAGE_SIZE'"
 
-              # Check if we need to recreate PVC due to immutable specs
+              # PVC specs are immutable. Never delete the volume from CI: it holds the
+              # production data. A storage change is a manual migration (backup, restore).
               if [ "$CURRENT_STORAGE_CLASS" != "local-path" ] || [ "$CURRENT_STORAGE_SIZE" != "10Gi" ]; then
-                  echo "PVC configuration mismatch. Current: $CURRENT_STORAGE_CLASS/$CURRENT_STORAGE_SIZE, Expected: local-path/10Gi"
-                  echo "Cleaning up existing database resources..."
-                  kubectl delete deployment pool-tracker-db-deployment-prod -n pool-tracker-prod --ignore-not-found=true
-                  kubectl delete pvc mysql-data-pvc-prod -n pool-tracker-prod --ignore-not-found=true
-                  kubectl delete service pool-tracker-db-service-prod -n pool-tracker-prod --ignore-not-found=true
-                  kubectl delete configmap mysql-init-config-prod -n pool-tracker-prod --ignore-not-found=true
-                  echo "Waiting for resources to be fully deleted..."
-                  sleep 20
+                  echo "::error::PVC mismatch. Current: $CURRENT_STORAGE_CLASS/$CURRENT_STORAGE_SIZE, manifest: local-path/10Gi. Migrate the volume manually (scripts/kube-db-manager.sh backup, then restore)."
+                  exit 1
               else
                   echo "PVC configuration is correct."
               fi

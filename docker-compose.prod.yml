@@ -47,7 +47,6 @@ services:
       - --max-connections=200
     volumes:
       - mysql_prod_data:/var/lib/mysql
-      - ./db/init:/docker-entrypoint-initdb.d:ro
     networks:
       - pool-tracker-network
     healthcheck:
