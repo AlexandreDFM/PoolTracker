@@ -28,6 +28,12 @@ router.post('/set-password', authController.setPassword);
 // Route to change the connected user's password
 router.put('/password', authenticateJWT, authController.changePassword);
 
+// End the session (clears the cookie; no token needed, an expired one must still log out)
+router.post('/logout', authController.logout);
+
+// Move a token kept by an older client (Authorization header) into the session cookie
+router.post('/session', authenticateJWT, authController.createSession);
+
 // Route to get the connected user's profile
 router.get('/profile', authenticateJWT, authController.getProfile);
 

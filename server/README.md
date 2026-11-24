@@ -98,7 +98,13 @@ server/
 - `POST /api/auth/login` - User login
 - `POST /api/auth/set-password` - Set the initial password (first login, requires the setup token returned by login)
 - `PUT /api/auth/password` - Change the connected user's password (current + new password)
+- `POST /api/auth/logout` - End the session (clears the cookie)
+- `POST /api/auth/session` - Move a token sent as `Authorization: Bearer` into the session cookie (one-time migration of older clients)
 - `GET /api/auth/profile` - Get connected user profile
+
+### Health
+- `GET /api/health/live` - The Node process answers (liveness and startup probes)
+- `GET /api/health` - The database answers too (`SELECT 1`, 2 s timeout, else `503`): readiness probe
 
 ### Students
 - `GET /api/students` - List all students (admin)
@@ -141,6 +147,7 @@ The API uses JWT (JSON Web Token) for authentication. Passwords are hashed using
 - Personal routes: accessible by the administrator or the concerned student
 
 Sessions:
+- The JWT is sent in an HttpOnly, SameSite=Strict cookie (`pt_session`, path `/api`, Secure in production), never in a response body. `Authorization: Bearer` is still accepted for scripts.
 - Each request reads the user from the database: a deleted account is refused at once and the role is always the current one.
 - Changing or resetting a password ends the user's other sessions (`sessionVersion` column, carried in the token as `sv`). The session that changes its password receives a new token.
 
