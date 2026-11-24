@@ -452,11 +452,11 @@ const AdminQuests = () => {
                             <p className="stat-number">{statistics.activeQuests}</p>
                         </div>
                         <div className="stat-card">
-                            <h3>Today's Assignments</h3>
+                            <h3>Today&apos;s Assignments</h3>
                             <p className="stat-number">{statistics.todayAssignments}</p>
                         </div>
                         <div className="stat-card">
-                            <h3>Today's Completions</h3>
+                            <h3>Today&apos;s Completions</h3>
                             <p className="stat-number">{statistics.todayCompletions}</p>
                         </div>
                     </div>

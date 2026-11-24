@@ -1,0 +1,14 @@
+# Applied once by a cluster admin (the deploy accounts have no cluster-wide rights)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pool-tracker-prod
+  labels:
+    app.kubernetes.io/part-of: pool-tracker
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pool-tracker-staging
+  labels:
+    app.kubernetes.io/part-of: pool-tracker

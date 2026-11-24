@@ -65,7 +65,7 @@ Ports come from `CLIENT_PORT`, `SERVER_PORT` and `MYSQL_PORT` in `.env`.
 | Client | Vite dev server | Static build served by Nginx |
 | Use case | Active development | Local production test |
 
-The Kubernetes production deployment is described in [KUBERNETES-PRODUCTION-DEPLOYMENT.md](KUBERNETES-PRODUCTION-DEPLOYMENT.md).
+The Kubernetes deployment (production and staging) is described in [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Environment Variables
 

@@ -38,8 +38,7 @@ coverage/
 db/
 
 # Kubernetes files
-deploy/kubernetes/production/secret.yaml
-deploy/kubernetes/preproduction/secret.yaml
+k8s/**/secret.yaml
 
 # Ignore temporary files
 tmp/

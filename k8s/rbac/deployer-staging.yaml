@@ -1,19 +1,20 @@
 # Account used by the GitHub deploy workflow. It can only manage the
-# resources PoolTracker uses, in the pool-tracker-prod namespace (no delete,
+# resources PoolTracker uses, in the pool-tracker-staging namespace (no delete,
 # no exec, nothing cluster-wide). Applied once by a cluster admin, then:
-#   ./deploy/kubernetes/rbac/make-kubeconfig.sh https://<api-server>:6443
-# prints the KUBE_CONFIG GitHub secret.
+#   NAMESPACE=pool-tracker-staging ./k8s/rbac/make-kubeconfig.sh https://<api-server>:6443
+# prints the KUBE_CONFIG secret of the GitHub environment staging.
+# Same Role as deployer.yaml (production).
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: github-deployer
-  namespace: pool-tracker-prod
+  namespace: pool-tracker-staging
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: github-deployer
-  namespace: pool-tracker-prod
+  namespace: pool-tracker-staging
 rules:
   - apiGroups: [""]
     resources: [configmaps, secrets, services, persistentvolumeclaims]
@@ -24,6 +25,13 @@ rules:
   - apiGroups: [apps]
     resources: [deployments, replicasets]
     verbs: [get, list, watch, create, update, patch]
+  # Database backup CronJob (production)
+  - apiGroups: [batch]
+    resources: [cronjobs]
+    verbs: [get, list, watch, create, update, patch]
+  - apiGroups: [batch]
+    resources: [jobs]
+    verbs: [get, list, watch]
   # Routing: Kubernetes Ingress (TLS through cert-manager) and Traefik CRDs
   - apiGroups: [networking.k8s.io]
     resources: [ingresses]
@@ -43,11 +51,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: github-deployer
-  namespace: pool-tracker-prod
+  namespace: pool-tracker-staging
 subjects:
   - kind: ServiceAccount
     name: github-deployer
-    namespace: pool-tracker-prod
+    namespace: pool-tracker-staging
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -58,7 +66,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: github-deployer-token
-  namespace: pool-tracker-prod
+  namespace: pool-tracker-staging
   annotations:
     kubernetes.io/service-account.name: github-deployer
 type: kubernetes.io/service-account-token

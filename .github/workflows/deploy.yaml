@@ -1,0 +1,201 @@
+name: Deploy to Kubernetes
+
+# Called by build.yaml once the image of the commit is pushed.
+# One-time setup (namespace, deploy account, cert-manager, GitHub
+# environments, Secrets and Variables): documentation/DEPLOYMENT.md
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: GitHub environment (production or staging)
+        required: true
+        type: string
+      namespace:
+        description: Kubernetes namespace
+        required: true
+        type: string
+      manifests:
+        description: Kustomize folder
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  APP: pool-tracker
+  ENVIRONMENT: ${{ inputs.environment }}
+  NAMESPACE: ${{ inputs.namespace }}
+  MANIFESTS: ${{ inputs.manifests }}
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ vars.PUBLIC_SITE_URL }}
+    # One deployment at a time per environment; a newer one waits
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Connect to the cluster
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          if [ -z "$KUBE_CONFIG" ]; then
+            echo "::error::Secret KUBE_CONFIG is missing in the environment (k8s/rbac/make-kubeconfig.sh)"
+            exit 1
+          fi
+          kubeconfig="$RUNNER_TEMP/kubeconfig"
+          printf '%s' "$KUBE_CONFIG" | base64 --decode > "$kubeconfig"
+          chmod 600 "$kubeconfig"
+          echo "KUBECONFIG=$kubeconfig" >> "$GITHUB_ENV"
+          KUBECONFIG="$kubeconfig" kubectl -n "$NAMESPACE" auth can-i create deployments.apps \
+            || { echo "::error::The deploy account cannot deploy in $NAMESPACE (k8s/rbac/deployer.yaml)"; exit 1; }
+
+      - name: Check the one-time setup
+        run: |
+          # Every kind the manifests use must be allowed to the deploy account,
+          # or apply fails half-way. The TLS certificate is created by cert-manager.
+          missing=0
+          for kind in persistentvolumeclaims services configmaps secrets deployments.apps \
+                      ingresses.networking.k8s.io middlewares.traefik.io cronjobs.batch; do
+            if ! kubectl -n "$NAMESPACE" auth can-i patch "$kind" > /dev/null; then
+              echo "::error::The deploy account cannot manage $kind in $NAMESPACE (k8s/rbac/)"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Registry access (private package only)
+        env:
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+          GHCR_PULL_USER: ${{ secrets.GHCR_PULL_USER || github.repository_owner }}
+        run: |
+          # The pull secret must outlive the run: the kubelet pulls again when a
+          # pod is recreated, and GITHUB_TOKEN expires with the job
+          if [ -n "$GHCR_PULL_TOKEN" ]; then
+            kubectl -n "$NAMESPACE" create secret docker-registry github-container-registry \
+              --docker-server=ghcr.io \
+              --docker-username="$GHCR_PULL_USER" \
+              --docker-password="$GHCR_PULL_TOKEN" \
+              --dry-run=client -o yaml | kubectl apply -f -
+          else
+            echo "::warning::GHCR_PULL_TOKEN is not set: the image must be public."
+            # Stale credentials would make GHCR answer 403 even for a public image
+            kubectl -n "$NAMESPACE" create secret generic github-container-registry \
+              --type=kubernetes.io/dockerconfigjson \
+              --from-literal=.dockerconfigjson='{"auths":{}}' \
+              --dry-run=client -o yaml | kubectl apply -f -
+          fi
+
+      - name: Application settings (GitHub Variables)
+        env:
+          PUBLIC_SITE_URL: ${{ vars.PUBLIC_SITE_URL }}
+          CORS_ORIGIN: ${{ vars.CORS_ORIGIN }}
+        run: |
+          args=()
+          for name in PUBLIC_SITE_URL CORS_ORIGIN; do
+            if [ -n "${!name}" ]; then
+              args+=(--from-literal="$name=${!name}")
+            fi
+          done
+          kubectl -n "$NAMESPACE" create configmap "$APP-app-config" "${args[@]}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Application secrets (GitHub Secrets)
+        env:
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+          ADMIN_INITIAL_EMAIL: ${{ secrets.ADMIN_INITIAL_EMAIL }}
+          ADMIN_INITIAL_PASSWORD: ${{ secrets.ADMIN_INITIAL_PASSWORD }}
+        run: |
+          missing=0
+          for name in DB_USER DB_PASSWORD JWT_SECRET MYSQL_ROOT_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Secret $name is required in the GitHub environment $ENVIRONMENT"
+              missing=1
+            fi
+          done
+          [ "$missing" = 0 ] || exit 1
+
+          # Application: database credentials, JWT key, optional first admin
+          args=(--from-literal="DB_USER=$DB_USER" --from-literal="DB_PASSWORD=$DB_PASSWORD"
+                --from-literal="JWT_SECRET=$JWT_SECRET")
+          for name in ADMIN_INITIAL_EMAIL ADMIN_INITIAL_PASSWORD; do
+            if [ -n "${!name}" ]; then
+              args+=(--from-literal="$name=${!name}")
+            fi
+          done
+          kubectl -n "$NAMESPACE" create secret generic "$APP-app" "${args[@]}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          # Database: root and application user (only used when the data
+          # directory is initialized)
+          kubectl -n "$NAMESPACE" create secret generic "$APP-db" \
+            --from-literal="MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD" \
+            --from-literal="MYSQL_USER=$DB_USER" \
+            --from-literal="MYSQL_PASSWORD=$DB_PASSWORD" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy
+        env:
+          TAG: ${{ github.sha }}
+        run: |
+          # Image of the deployed commit (portable sed: same syntax on Linux and macOS).
+          # Quoted: a SHA made of digits (or like "8e1234...") would otherwise be read as a number.
+          sed "s/^\([[:space:]]*newTag:\).*/\1 \"${TAG}\"/" "$MANIFESTS/kustomization.yaml" > "$RUNNER_TEMP/kustomization.yaml"
+          mv "$RUNNER_TEMP/kustomization.yaml" "$MANIFESTS/kustomization.yaml"
+          kubectl apply -k "$MANIFESTS"
+          # Database first, then the web pod
+          kubectl -n "$NAMESPACE" rollout status "deployment/$APP-db" --timeout=600s
+          kubectl -n "$NAMESPACE" rollout status "deployment/$APP-web" --timeout=600s
+
+      - name: Diagnostics
+        if: failure()
+        run: |
+          kubectl -n "$NAMESPACE" get deployments,pods,services,pvc,ingress || true
+          kubectl -n "$NAMESPACE" describe pods -l app.kubernetes.io/name=pool-tracker || true
+          for component in web database; do
+            echo "--- logs: $component"
+            kubectl -n "$NAMESPACE" logs -l "app.kubernetes.io/component=$component" --tail=100 --all-containers || true
+          done
+          kubectl -n "$NAMESPACE" get events --sort-by=.lastTimestamp | tail -30 || true
+
+      - name: Smoke tests on the public site
+        if: vars.PUBLIC_SITE_URL != ''
+        env:
+          SITE: ${{ vars.PUBLIC_SITE_URL }}
+        run: |
+          # Through the ingress, like a visitor: DNS, TLS, nginx, Node, database
+          for attempt in $(seq 1 12); do
+            if curl -fsS --max-time 10 -o /dev/null "$SITE/api/health"; then
+              break
+            fi
+            [ "$attempt" = 12 ] && { echo "::error::$SITE/api/health does not answer"; exit 1; }
+            sleep 10
+          done
+          fail=0
+          check() {
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$SITE$1" || true)
+            if [ "$code" = "$2" ]; then
+              echo "✅ $1 -> $code"
+            else
+              echo "::error::$1 answered $code, expected $2"
+              fail=1
+            fi
+          }
+          check / 200
+          check /api/health 200
+          check /api/auth/profile 401   # unauthenticated request is refused
+          if ! curl -sI --max-time 10 "$SITE/" | grep -qi '^strict-transport-security:'; then
+            echo "::error::Strict-Transport-Security header missing"
+            fail=1
+          fi
+          exit "$fail"

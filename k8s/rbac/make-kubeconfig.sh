@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 #
 # Prints the KUBE_CONFIG GitHub secret: a kubeconfig for the github-deployer
-# account (deploy/kubernetes/rbac/deployer.yaml), base64-encoded on one line.
+# account (k8s/rbac/deployer.yaml), base64-encoded on one line.
 #
 # Usage (with an admin kubeconfig, after applying deployer.yaml):
-#   ./deploy/kubernetes/rbac/make-kubeconfig.sh https://<api-server>:6443
-#   ./deploy/kubernetes/rbac/make-kubeconfig.sh https://<api-server>:6443 | gh secret set KUBE_CONFIG --env production
+#   ./k8s/rbac/make-kubeconfig.sh https://<api-server>:6443
+#   ./k8s/rbac/make-kubeconfig.sh https://<api-server>:6443 | gh secret set KUBE_CONFIG --env production
+#   NAMESPACE=pool-tracker-staging ./k8s/rbac/make-kubeconfig.sh https://<api-server>:6443 \
+#     | gh secret set KUBE_CONFIG --env staging
 #
 set -euo pipefail
 
@@ -26,7 +28,7 @@ for _ in $(seq 1 30); do
     sleep 1
 done
 if [ -z "${token:-}" ]; then
-    echo "Secret $NAMESPACE/$secret has no token: apply deploy/kubernetes/rbac/deployer.yaml first" >&2
+    echo "Secret $NAMESPACE/$secret has no token: apply k8s/rbac/deployer.yaml first" >&2
     exit 1
 fi
 ca="$(kubectl -n "$NAMESPACE" get secret "$secret" -o jsonpath='{.data.ca\.crt}')"

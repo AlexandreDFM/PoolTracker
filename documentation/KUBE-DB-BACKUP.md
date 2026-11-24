@@ -195,27 +195,17 @@ These values are configured at the top of `kube-db-manager.sh`:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `NAMESPACE` | `pool-tracker-prod` | K8s namespace |
-| `DB_DEPLOYMENT` | `pool-tracker-db-deployment-prod` | Deployment name prefix for pod lookup |
-| `DB_NAME` | `pool_tracker_prod` | MySQL database name |
+| `NAMESPACE` | `pool-tracker-prod` | K8s namespace (environment variable; staging: `pool-tracker-staging`) |
+| `DB_SELECTOR` | `app.kubernetes.io/name=pool-tracker,app.kubernetes.io/component=database` | Labels of the MySQL pod |
+| `DB_DEPLOYMENT` | `pool-tracker-db` | Deployment name prefix, fallback for pod lookup |
+| `DB_NAME` | `pool_tracker_prod` | MySQL database name (environment variable; staging: `pool_tracker_staging`) |
 | `DB_USER` | `root` | MySQL user for dumps |
 | `MAX_BACKUPS` | `20` | Auto-rotate threshold |
 | `BACKUP_DIR` | `$HOME/pooltracker-backups` | VPS backup directory |
 
-## Automated Backups (Cron)
+## Automated Backups
 
-On the VPS:
-
-```bash
-# Edit crontab
-sudo crontab -e
-
-# Daily backup at 3 AM
-0 3 * * * /home/ubuntu/kube-db-manager.sh backup >> /home/ubuntu/pooltracker-backups/cron.log 2>&1
-
-# Weekly cleanup (keep 30 days)
-0 4 * * 0 /home/ubuntu/kube-db-manager.sh clean 30 >> /home/ubuntu/pooltracker-backups/cron.log 2>&1
-```
+Daily backups are made in the cluster by the CronJob `pool-tracker-db-backup` (production, 03:00 UTC, 14 days kept in the volume `pool-tracker-backups`): see [DEPLOYMENT.md](DEPLOYMENT.md#backups). The scripts below are for on-demand dumps, downloads and restores.
 
 ## Typical Scenarios
 

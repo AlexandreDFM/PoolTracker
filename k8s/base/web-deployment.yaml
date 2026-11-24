@@ -1,0 +1,116 @@
+# PoolTracker web pod: nginx serves the client and proxies /api to Node.
+# One replica: the quest scheduler runs inside the Node process, a second
+# replica would assign the daily quests twice.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pool-tracker-web
+  labels:
+    app.kubernetes.io/name: pool-tracker
+    app.kubernetes.io/component: web
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pool-tracker
+      app.kubernetes.io/component: web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pool-tracker
+        app.kubernetes.io/component: web
+    spec:
+      terminationGracePeriodSeconds: 30
+      # Created by the workflow from GHCR_PULL_TOKEN; ignored when missing
+      imagePullSecrets:
+        - name: github-container-registry
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      # The server creates its schema at startup and exits if MySQL does not
+      # answer: wait for the database first
+      initContainers:
+        - name: wait-for-database
+          image: mysql:8.0.35
+          command:
+            - sh
+            - -c
+            - |
+              until MYSQL_PWD="$DB_PASSWORD" mysql -h "$DB_HOST" -u "$DB_USER" -e "SELECT 1" "$DB_NAME" > /dev/null 2>&1; do
+                echo "waiting for $DB_HOST"; sleep 3
+              done
+          envFrom:
+            - configMapRef:
+                name: pool-tracker-config
+            - secretRef:
+                name: pool-tracker-app
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+      containers:
+        - name: web
+          image: ghcr.io/epitech-nice/pool-tracker:latest   # tag replaced by the commit SHA on deploy
+          # Tags are commit SHAs (immutable): no need to pull again
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: pool-tracker-config        # constants, in git
+            - configMapRef:
+                name: pool-tracker-app-config    # GitHub Variables
+                optional: true
+            - secretRef:
+                name: pool-tracker-app           # GitHub Secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: http
+              containerPort: 8080
+          # Liveness and startup: nginx and Node answer (no database, so a
+          # database outage does not restart the app in a loop).
+          # Readiness: the database answers too.
+          startupProbe:
+            httpGet:
+              path: /api/health/live
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/health/live
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 300m
+              memory: 512Mi
