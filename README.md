@@ -49,7 +49,7 @@ PoolTracker/
 
 1. Clone the repository:
    ```
-   git clone git@github.com:ItsKarmaOff/PoolTracker.git
+   git clone git@github.com:epitech-nice/PoolTracker.git
    cd PoolTracker
    ```
 
@@ -157,7 +157,7 @@ For complete database management documentation, see [documentation/DB-MANAGEMENT
 - [Docker Documentation](docker/README.md)
 - [Development Mode](documentation/DEVELOPMENT.md)
 - [Database Management](documentation/DB-MANAGEMENT.md)
-- [Production Deployment](deploy/kubernetes/README.md)
+- [Production Deployment](documentation/KUBERNETES-PRODUCTION-DEPLOYMENT.md)
 
 ## Contributing
 

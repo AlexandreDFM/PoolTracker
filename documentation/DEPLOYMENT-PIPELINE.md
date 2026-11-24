@@ -15,14 +15,11 @@ The pipeline consists of:
 ```
 .github/
 ├── workflows/
-│   ├── production-deployment.yml    # 🆕 Complete pipeline
-│   ├── build-docker-prod.yml        # 📦 Legacy build workflow
-│   └── deploy-prod.yml              # 🚀 Legacy deploy workflow
-└── SECRETS-SETUP.md                 # 🔐 Secret setup guide
+│   └── production-deployment.yml    # Complete pipeline (build + deploy)
 
 deploy/kubernetes/
-├── deploy-production-github.sh      # 🆕 GitHub Actions compatible script
-└── deploy-production.sh             # 🛠️ Manual deployment script
+├── namespaces.yaml
+└── production/                      # Production manifests
 ```
 
 ## 🔧 **Setup Instructions**
@@ -69,7 +66,7 @@ Go to Actions → Production Deployment Pipeline → Run workflow
 - Generate Software Bill of Materials (SBOM)
 ```
 
-**Output**: `ghcr.io/itskarmaoff/pool-tracker:latest`
+**Output**: `ghcr.io/epitech-nice/pool-tracker:latest`
 
 ### **Stage 2: Deploy** 🚀
 ```yaml
@@ -127,7 +124,7 @@ Go to Actions → Production Deployment Pipeline → Run workflow
 ### **Pipeline Monitoring**
 ```bash
 # View workflow runs
-gh run list --repo ItsKarmaOff/PoolTracker
+gh run list --repo epitech-nice/PoolTracker
 
 # View specific run logs
 gh run view [RUN_ID] --log
@@ -174,11 +171,11 @@ The pipeline uses multiple tagging strategies:
 ```yaml
 # Production (default)
 environment: production
-url: https://pool-tracker.fr
+url: https://pool.nice-tek.eu
 
 # Staging (custom)
 environment: staging
-url: https://staging.pool-tracker.fr
+url: https://pool.ppd.nice-tek.eu
 ```
 
 ## 🚨 **Troubleshooting**
@@ -209,7 +206,7 @@ kubectl logs -l app=pool-tracker -n pool-tracker-prod --previous
 #### **❌ Secret Issues**
 ```bash
 # Verify GitHub secrets
-gh secret list --repo ItsKarmaOff/PoolTracker
+gh secret list --repo epitech-nice/PoolTracker
 
 # Test secret values (be careful!)
 kubectl get secret pool-tracker-secret-prod -n pool-tracker-prod -o yaml
@@ -301,7 +298,7 @@ Your pipeline is working correctly when you see:
 - ✅ Green checkmarks in GitHub Actions
 - ✅ Healthy pods in Kubernetes
 - ✅ Successful health checks
-- ✅ Application accessible at https://pool-tracker.fr
+- ✅ Application accessible at https://pool.nice-tek.eu
 - ✅ No error events in cluster
 - ✅ Proper secret injection
 - ✅ Database connectivity working

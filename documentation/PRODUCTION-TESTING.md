@@ -271,10 +271,9 @@ After successful testing:
 
 ```bash
 # Tag and push to registry
-docker tag pool-tracker:latest ghcr.io/itskarmaoff/pool-tracker:v1.0.0
-docker push ghcr.io/itskarmaoff/pool-tracker:v1.0.0
+docker tag pool-tracker:latest ghcr.io/epitech-nice/pool-tracker:v1.0.0
+docker push ghcr.io/epitech-nice/pool-tracker:v1.0.0
 
-# Deploy to Kubernetes
-cd deploy/kubernetes
-./deploy-production.sh
+# Deploy to Kubernetes: merge to main (GitHub Actions workflow
+# .github/workflows/production-deployment.yml)
 ```

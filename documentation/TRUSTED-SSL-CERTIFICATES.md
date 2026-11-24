@@ -22,11 +22,7 @@ Let's Encrypt provides **free, automatically renewable certificates** trusted by
 - Domain must point to your Kubernetes cluster IP
 
 ### **Quick Setup:**
-```bash
-# Run the automated Let's Encrypt setup
-cd scripts
-./setup-trusted-ssl.sh letsencrypt
-```
+cert-manager and the `letsencrypt-prod` ClusterIssuer are already installed on the cluster, and the production workflow requests the `pool-tracker-tls-cert` certificate. The steps below are only needed on a new cluster.
 
 ### **Manual Setup Steps:**
 
@@ -314,7 +310,7 @@ kubectl get order -n pool-tracker-prod
 ## ✅ **Next Steps**
 
 1. **Choose your certificate method** based on your needs
-2. **Run the setup script**: `./setup-trusted-ssl.sh letsencrypt`
+2. **Follow the manual setup steps** above (new cluster only)
 3. **Test the certificate** in multiple browsers
 4. **Set up monitoring** for certificate expiry
 5. **Document the process** for your team
