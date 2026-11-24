@@ -4,7 +4,10 @@ The Kubernetes manifests live in `deploy/kubernetes/`. Production is deployed by
 
 ## 📁 Files Overview
 
-- **`namespaces.yaml`** - Production namespace configuration
+- **`namespaces.yaml`** - Production namespace (applied once by a cluster admin)
+- **`rbac/`** - Deploy account used by GitHub Actions (applied once by a cluster admin)
+  - **`deployer.yaml`** - ServiceAccount `github-deployer` with a Role limited to `pool-tracker-prod`
+  - **`make-kubeconfig.sh`** - Prints the `KUBE_CONFIG` GitHub secret
 - **`production/`** - Production environment manifests
   - **`deployment.yaml`** - Main application deployment
   - **`service.yaml`** - Service configuration
@@ -22,9 +25,13 @@ The Kubernetes manifests live in `deploy/kubernetes/`. Production is deployed by
 3. **GitHub Container Registry access** for the Docker image
 4. **DNS** pointing `pool.nice-tek.eu` and `www.pool.nice-tek.eu` to your cluster
 
+### One-time setup (cluster admin)
+
+The namespace, the deploy account, cert-manager and its ClusterIssuer are cluster-wide and stay out of the workflow: see [SECRETS-SETUP.md](SECRETS-SETUP.md).
+
 ### Deploy to Production
 
-Merge to `main`, or run the workflow manually:
+Merge to `main`, or run the workflow manually ([DEPLOYMENT-PIPELINE.md](DEPLOYMENT-PIPELINE.md) describes each step):
 
 ```bash
 gh workflow run production-deployment.yml --repo epitech-nice/PoolTracker

@@ -22,7 +22,7 @@ Let's Encrypt provides **free, automatically renewable certificates** trusted by
 - Domain must point to your Kubernetes cluster IP
 
 ### **Quick Setup:**
-cert-manager and the `letsencrypt-prod` ClusterIssuer are already installed on the cluster, and the production workflow requests the `pool-tracker-tls-cert` certificate. The steps below are only needed on a new cluster.
+cert-manager and the `letsencrypt-prod` ClusterIssuer are already installed on the cluster by its admin (they are shared with other applications, so the workflow does not install them). cert-manager creates and renews the `pool-tracker-tls-cert` certificate from the `cert-manager.io/cluster-issuer` annotation of the Ingress in `production/ingress.yaml`. The steps below are only needed on a new cluster.
 
 ### **Manual Setup Steps:**
 
