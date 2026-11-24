@@ -1,0 +1,82 @@
+name: CI
+
+# Pull requests, and before every image build (reused by build.yaml)
+on:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  client:
+    name: Client (lint, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  server:
+    name: Server (start, health, login)
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0.35
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root-password
+          MYSQL_DATABASE: pool_tracker_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -pci-root-password"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+    defaults:
+      run:
+        working-directory: server
+    env:
+      DB_HOST: 127.0.0.1
+      DB_USER: root
+      DB_PASSWORD: ci-root-password
+      DB_NAME: pool_tracker_ci
+      JWT_SECRET: ci-only-jwt-secret
+      HOST: 127.0.0.1
+      PORT: 3001
+      NODE_ENV: production
+      ADMIN_INITIAL_EMAIL: admin@ci.local
+      ADMIN_INITIAL_PASSWORD: ci-admin-password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci --omit=dev
+      - name: Start the server and check it
+        run: |
+          node server.js > "$RUNNER_TEMP/server.log" 2>&1 &
+          for attempt in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:3001/api/health && break
+            [ "$attempt" = 30 ] && { echo "::error::/api/health does not answer"; cat "$RUNNER_TEMP/server.log"; exit 1; }
+            sleep 2
+          done
+          echo
+          # Login sets the HttpOnly session cookie, which then opens the profile
+          headers=$(curl -fsS -D - -o /dev/null -c "$RUNNER_TEMP/cookies" -H 'Content-Type: application/json' \
+            -d "{\"email\":\"$ADMIN_INITIAL_EMAIL\",\"password\":\"$ADMIN_INITIAL_PASSWORD\"}" \
+            http://127.0.0.1:3001/api/auth/login)
+          echo "$headers" | grep -qi '^set-cookie: pt_session=.*HttpOnly' \
+            || { echo "::error::login does not set the session cookie"; cat "$RUNNER_TEMP/server.log"; exit 1; }
+          curl -fsS -o /dev/null -b "$RUNNER_TEMP/cookies" http://127.0.0.1:3001/api/auth/profile \
+            || { echo "::error::the session cookie does not open the profile"; exit 1; }
+          echo "Server checks passed"
