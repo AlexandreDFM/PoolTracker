@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
 
             // If it's the first login, return information without setting the user
             if (data.requiresPasswordSet) {
-                return { requiresPasswordSet: true, userId: data.userId };
+                return { requiresPasswordSet: true, setupToken: data.setupToken };
             }
 
             // Otherwise, store the token and set the user
@@ -68,10 +68,10 @@ export const AuthProvider = ({ children }) => {
     };
 
     // Function to set password (first login)
-    const setPassword = async (userId, password) => {
+    const setPassword = async (setupToken, password) => {
         try {
             setError(null);
-            const data = await authService.setPassword(userId, password);
+            const data = await authService.setPassword(setupToken, password);
             localStorage.setItem('token', data.token);
             setUser(data.user);
             return { success: true };

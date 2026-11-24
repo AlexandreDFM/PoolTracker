@@ -136,26 +136,28 @@ jobs:
               --from-literal=JWT_SECRET="${{ env.JWT_SECRET }}" \
               --from-literal=SESSION_SECRET="${{ env.SESSION_SECRET }}"
 
-      - name: Create Container Registry Secret
+      - name: Registry access (private package only)
+        env:
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+          GHCR_PULL_USER: ${{ secrets.GHCR_PULL_USER || github.repository_owner }}
         run: |
-          # Delete existing secret if it exists
-          kubectl delete secret github-container-registry -n pool-tracker-prod --ignore-not-found=true
-
-          # TODO: 
-          # Create GitHub Container Registry secret using a long-lived PAT
-          # GITHUB_TOKEN expires after the workflow run, causing image pull failures later.
-          # GHCR_READ_TOKEN is a PAT with read:packages scope that persists.
-          # kubectl create secret docker-registry github-container-registry -n pool-tracker-prod \
-          #     --docker-server=${{ env.REGISTRY }} \
-          #     --docker-username=${{ env.GITHUB_USERNAME }} \
-          #     --docker-password=${{ secrets.GHCR_READ_TOKEN }} \
-          #     --docker-email=${{ github.actor }}@users.noreply.github.com
-
-          kubectl create secret docker-registry github-container-registry -n pool-tracker-prod \
-              --docker-server=${{ env.REGISTRY }} \
-              --docker-username=${{ env.GITHUB_USERNAME }} \
-              --docker-password=${{ env.GITHUB_TOKEN }} \
-              --docker-email=${{ github.actor }}@users.noreply.github.com
+          # The pull secret must outlive the workflow run: the kubelet pulls again
+          # whenever a pod is recreated (node reboot, eviction). GITHUB_TOKEN expires
+          # when the job ends, so a long-lived read:packages token is required.
+          if [ -n "$GHCR_PULL_TOKEN" ]; then
+              kubectl create secret docker-registry github-container-registry -n pool-tracker-prod \
+                  --docker-server="$REGISTRY" \
+                  --docker-username="$GHCR_PULL_USER" \
+                  --docker-password="$GHCR_PULL_TOKEN" \
+                  --dry-run=client -o yaml | kubectl apply -f -
+          else
+              echo "::warning::GHCR_PULL_TOKEN is not set: the image must be public."
+              # Overwrite any stale credentials, which would make GHCR answer 403 even for a public image.
+              kubectl create secret generic github-container-registry -n pool-tracker-prod \
+                  --type=kubernetes.io/dockerconfigjson \
+                  --from-literal=.dockerconfigjson='{"auths":{}}' \
+                  --dry-run=client -o yaml | kubectl apply -f -
+          fi
 
       - name: Apply ConfigMap
         run: kubectl apply -f deploy/kubernetes/production/configmap.yaml

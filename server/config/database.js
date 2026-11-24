@@ -193,19 +193,32 @@ async function initDatabase() {
 
     // If no admin accounts exist, create a default admin account
     if (admins.length === 0) {
-      // const bcrypt = require('bcrypt');
       const bcrypt = require("bcryptjs");
-      const hashedPassword = await bcrypt.hash("admin123", 10);
+      const crypto = require("crypto");
+      const adminEmail = process.env.ADMIN_INITIAL_EMAIL || "admin@epitech.eu";
+      const providedPassword = process.env.ADMIN_INITIAL_PASSWORD;
+      const initialPassword =
+        providedPassword || crypto.randomBytes(18).toString("base64url");
+      const hashedPassword = await bcrypt.hash(initialPassword, 10);
 
       await pool.query(
         `
                 INSERT INTO USERS (email, password, role, firstName, lastName, isFirstLogin)
                 VALUES (?, ?, 'ADMIN', 'Admin', 'Système', FALSE)
             `,
-        ["admin@epitech.eu", hashedPassword],
+        [adminEmail, hashedPassword],
       );
 
-      console.log("\x1b[32mDefault admin account created\x1b[0m");
+      if (providedPassword) {
+        console.log(
+          `\x1b[32mDefault admin account created (${adminEmail}) with ADMIN_INITIAL_PASSWORD\x1b[0m`,
+        );
+      } else {
+        // Printed once, on first start with an empty database only
+        console.log(
+          `\x1b[33mDefault admin account created: ${adminEmail} / ${initialPassword} (change it after first login)\x1b[0m`,
+        );
+      }
     }
 
     // Initialize quest configuration if it doesn't exist

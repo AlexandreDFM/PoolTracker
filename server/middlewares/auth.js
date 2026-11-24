@@ -26,8 +26,9 @@ exports.authenticateJWT = (req, res, next) => {
 
     const token = authHeader.split(' ')[1];
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-        if (err) {
+    jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] }, (err, user) => {
+        // Purpose-limited tokens (e.g. first-login setup) are not session tokens
+        if (err || user.purpose) {
             return res.status(403).json({ message: 'Invalid or expired token' });
         }
 

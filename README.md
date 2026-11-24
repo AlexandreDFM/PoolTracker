@@ -96,10 +96,12 @@ See the README files in the [client](client/README.md) and [server](server/READM
 ### Default Admin Account
 
 On the first startup, a default admin account is created:
-- Email: admin@epitech.eu
-- Password: admin123
+- Email: `ADMIN_INITIAL_EMAIL` (default: admin@epitech.eu)
+- Password: `ADMIN_INITIAL_PASSWORD` if set, otherwise a random password printed once in the server logs
 
-**It is strongly recommended to change this password after the first login.**
+This only happens when the database contains no admin account.
+
+**Change this password after the first login.**
 
 ### User Roles
 

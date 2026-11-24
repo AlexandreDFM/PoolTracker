@@ -203,6 +203,13 @@ exports.updateUser = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        // Same hierarchy as canManageAccountType: only ADMIN can modify ADMIN and APE accounts
+        if (req.user.role !== 'ADMIN' && (user.role === 'ADMIN' || user.role === 'APE')) {
+            return res.status(403).json({
+                message: `Access denied. You don't have permission to manage ${user.role} accounts.`
+            });
+        }
+
         // Only ADMIN can change roles
         const updateData = {
             email: email || user.email,
