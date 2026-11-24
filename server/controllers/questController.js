@@ -231,16 +231,45 @@ exports.updateQuestConfig = async (req, res) => {
 };
 
 // Get quest (student)
+// The quest PDF comes from a public GitHub repository. It stays public here
+// because Google Docs Viewer (used by the student page) fetches it without a
+// token; it is cached so repeated calls do not download it each time.
+const QUEST_PDF_URL = 'https://raw.githubusercontent.com/epitech-nice/EpiQuests/refs/heads/main/EpiQuests.pdf';
+const QUEST_PDF_TTL_MS = 10 * 60 * 1000;
+let questPdfCache = { data: null, fetchedAt: 0, pending: null };
+
+const loadQuestPdf = async () => {
+  if (questPdfCache.data && Date.now() - questPdfCache.fetchedAt < QUEST_PDF_TTL_MS) {
+    return questPdfCache.data;
+  }
+  // One download at a time, shared by concurrent requests
+  if (!questPdfCache.pending) {
+    questPdfCache.pending = axios
+      .get(QUEST_PDF_URL, { responseType: 'arraybuffer', timeout: 10000, maxContentLength: 20 * 1024 * 1024 })
+      .then((response) => {
+        questPdfCache = { data: Buffer.from(response.data), fetchedAt: Date.now(), pending: null };
+        return questPdfCache.data;
+      })
+      .catch((error) => {
+        questPdfCache.pending = null;
+        // Serve the last good copy if GitHub is unreachable
+        if (questPdfCache.data) return questPdfCache.data;
+        throw error;
+      });
+  }
+  return questPdfCache.pending;
+};
+
 exports.getQuestPdf = async (req, res) => {
   try {
-    const url = 'https://raw.githubusercontent.com/epitech-nice/EpiQuests/refs/heads/main/EpiQuests.pdf';
-    const response = await axios.get(url, { responseType: 'arraybuffer' });
+    const pdf = await loadQuestPdf();
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Security-Policy', "default-src 'self'; frame-src 'self' blob:;");
     res.setHeader('Content-Disposition', 'inline; filename="EpiQuests.pdf"');
-    res.send(response.data);
+    res.setHeader('Cache-Control', 'public, max-age=600');
+    res.send(pdf);
   } catch (error) {
-    console.error('\x1b[31mError fetching quest config:\x1b[0m', error);
-    res.status(500).json({ message: 'Server error while fetching quest' });
+    console.error('\x1b[31mError fetching quest PDF:\x1b[0m', error.message);
+    res.status(502).json({ message: 'Quest PDF is temporarily unavailable' });
   }
 };

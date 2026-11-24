@@ -16,9 +16,10 @@
 
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
-const { initDatabase } = require('./config/database');
+const { initDatabase, pool } = require('./config/database');
 
 // Load environment variables
 dotenv.config();
@@ -26,14 +27,56 @@ dotenv.config();
 // Initialize Express application
 const app = express();
 
-// Middleware for parsing JSON
-app.use(express.json());
+// Requests arrive through Traefik and the nginx of the pod: trust only those
+// local hops, so req.ip is the client address and a forged X-Forwarded-For
+// sent by the client is ignored
+app.set('trust proxy', ['loopback', 'uniquelocal']);
+app.disable('x-powered-by');
 
-// Middleware for handling CORS
-app.use(cors());
+// Security headers for API responses. HSTS is set by Traefik (TLS ends there);
+// X-Frame-Options DENY matches the one nginx adds on /api
+app.use(helmet({
+    strictTransportSecurity: false,
+    xFrameOptions: { action: 'deny' }
+}));
 
-// Middleware for logging HTTP requests
-app.use(morgan('dev'));
+// Middleware for parsing JSON (explicit default limit)
+app.use(express.json({ limit: '100kb' }));
+
+// CORS: the client is served from the same origin, so no cross-origin access
+// unless CORS_ORIGIN lists allowed origins (comma-separated)
+const corsOrigins = (process.env.CORS_ORIGIN || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+if (corsOrigins.length > 0) {
+    app.use(cors({ origin: corsOrigins }));
+}
+
+// Middleware for logging HTTP requests (not the probes, called every few seconds)
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', {
+    skip: (req) => req.path.startsWith('/api/health')
+}));
+
+// Health checks used by the Kubernetes probes
+// - live: the Node process answers (liveness, startup); no database, so a
+//   database outage does not make Kubernetes restart the app in a loop
+// - ready: the database answers too (readiness: the pod leaves the routing)
+app.get('/api/health/live', (req, res) => {
+    res.status(200).json({ status: 'ok' });
+});
+
+app.get('/api/health', async (req, res) => {
+    const timeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('database check timed out')), 2000).unref();
+    });
+    try {
+        await Promise.race([pool.query('SELECT 1'), timeout]);
+        res.status(200).json({ status: 'ok', database: 'ok' });
+    } catch (error) {
+        res.status(503).json({ status: 'error', database: 'unreachable' });
+    }
+});
 
 // Initialize the database
 initDatabase().then(() => {

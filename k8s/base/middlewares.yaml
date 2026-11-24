@@ -1,0 +1,49 @@
+# Traefik middlewares, referenced by the Ingress annotations as
+# <namespace>-<name>@kubernetescrd
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: redirect-https
+  labels:
+    app.kubernetes.io/name: pool-tracker
+    app.kubernetes.io/component: web
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: security-headers
+  labels:
+    app.kubernetes.io/name: pool-tracker
+    app.kubernetes.io/component: web
+spec:
+  headers:
+    customRequestHeaders:
+      X-Forwarded-Proto: "https"
+    customResponseHeaders:
+      X-Content-Type-Options: "nosniff"
+      X-Frame-Options: "SAMEORIGIN"
+      X-XSS-Protection: "1; mode=block"
+      Referrer-Policy: "strict-origin-when-cross-origin"
+      Permissions-Policy: "camera=(), microphone=(), geolocation=()"
+    contentSecurityPolicy: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self'; frame-src 'self' blob: https://docs.google.com; child-src 'self' blob: https://docs.google.com; worker-src 'self' blob:;"
+    forceSTSHeader: true
+    stsSeconds: 31536000
+    stsIncludeSubdomains: true
+    stsPreload: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: rate-limit
+  labels:
+    app.kubernetes.io/name: pool-tracker
+    app.kubernetes.io/component: web
+spec:
+  rateLimit:
+    average: 100
+    period: 1s
+    burst: 50

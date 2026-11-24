@@ -65,6 +65,22 @@ async function initDatabase() {
             )
         `);
 
+    // Columns added after the first release. MySQL 8.0 has no ADD COLUMN IF NOT EXISTS
+    const addColumnIfMissing = async (table, column, definition) => {
+      const [rows] = await pool.query(
+        `SELECT 1 FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+        [table, column],
+      );
+      if (rows.length === 0) {
+        await pool.query(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+        console.log(`\x1b[32mColumn ${table}.${column} added\x1b[0m`);
+      }
+    };
+
+    // Incremented on each password change or reset: older sessions are refused
+    await addColumnIfMissing("USERS", "sessionVersion", "INT NOT NULL DEFAULT 0");
+
     // Teams table
     await pool.query(`
             CREATE TABLE IF NOT EXISTS TEAMS (
@@ -193,19 +209,32 @@ async function initDatabase() {
 
     // If no admin accounts exist, create a default admin account
     if (admins.length === 0) {
-      // const bcrypt = require('bcrypt');
       const bcrypt = require("bcryptjs");
-      const hashedPassword = await bcrypt.hash("admin123", 10);
+      const crypto = require("crypto");
+      const adminEmail = process.env.ADMIN_INITIAL_EMAIL || "admin@epitech.eu";
+      const providedPassword = process.env.ADMIN_INITIAL_PASSWORD;
+      const initialPassword =
+        providedPassword || crypto.randomBytes(18).toString("base64url");
+      const hashedPassword = await bcrypt.hash(initialPassword, 10);
 
       await pool.query(
         `
                 INSERT INTO USERS (email, password, role, firstName, lastName, isFirstLogin)
                 VALUES (?, ?, 'ADMIN', 'Admin', 'Système', FALSE)
             `,
-        ["admin@epitech.eu", hashedPassword],
+        [adminEmail, hashedPassword],
       );
 
-      console.log("\x1b[32mDefault admin account created\x1b[0m");
+      if (providedPassword) {
+        console.log(
+          `\x1b[32mDefault admin account created (${adminEmail}) with ADMIN_INITIAL_PASSWORD\x1b[0m`,
+        );
+      } else {
+        // Printed once, on first start with an empty database only
+        console.log(
+          `\x1b[33mDefault admin account created: ${adminEmail} / ${initialPassword} (change it after first login)\x1b[0m`,
+        );
+      }
     }
 
     // Initialize quest configuration if it doesn't exist

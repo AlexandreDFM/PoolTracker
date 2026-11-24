@@ -164,6 +164,30 @@ class User {
         }
     }
 
+    // End every session of the user: tokens carry the version they were issued with
+    static async revokeSessions(id) {
+        try {
+            await pool.query('UPDATE USERS SET sessionVersion = sessionVersion + 1 WHERE id = ?', [id]);
+        } catch (error) {
+            console.error('\x1b[31mError revoking sessions:\x1b[0m', error);
+            throw error;
+        }
+    }
+
+    // Fields needed to authenticate a request
+    static async findSessionUser(id) {
+        try {
+            const [rows] = await pool.query(
+                'SELECT id, email, role, sessionVersion FROM USERS WHERE id = ?',
+                [id]
+            );
+            return rows[0];
+        } catch (error) {
+            console.error('\x1b[31mError finding session user:\x1b[0m', error);
+            throw error;
+        }
+    }
+
     // Check if a password is valid
     static async verifyPassword(plainPassword, hashedPassword) {
         return await bcrypt.compare(plainPassword, hashedPassword);

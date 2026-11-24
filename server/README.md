@@ -96,8 +96,15 @@ server/
 
 ### Authentication
 - `POST /api/auth/login` - User login
-- `POST /api/auth/set-password` - Set/reset password
+- `POST /api/auth/set-password` - Set the initial password (first login, requires the setup token returned by login)
+- `PUT /api/auth/password` - Change the connected user's password (current + new password)
+- `POST /api/auth/logout` - End the session (clears the cookie)
+- `POST /api/auth/session` - Move a token sent as `Authorization: Bearer` into the session cookie (one-time migration of older clients)
 - `GET /api/auth/profile` - Get connected user profile
+
+### Health
+- `GET /api/health/live` - The Node process answers (liveness and startup probes)
+- `GET /api/health` - The database answers too (`SELECT 1`, 2 s timeout, else `503`): readiness probe
 
 ### Students
 - `GET /api/students` - List all students (admin)
@@ -128,6 +135,7 @@ server/
 - `GET /api/users` - List all users (admin)
 - `GET /api/users/by-role/:role` - List users by role (admin)
 - Various endpoints for managing different user roles (ADMIN, APE, AER)
+- `POST /api/users/:id/reset-password` - Reset a user's password: the account goes back to first login (ADMIN for every account, APE for AER and STUDENT)
 
 ## Security
 
@@ -138,13 +146,32 @@ The API uses JWT (JSON Web Token) for authentication. Passwords are hashed using
 - Admin routes: reserved for users with the "ADMIN" role
 - Personal routes: accessible by the administrator or the concerned student
 
+Sessions:
+- The JWT is sent in an HttpOnly, SameSite=Strict cookie (`pt_session`, path `/api`, Secure in production), never in a response body. `Authorization: Bearer` is still accepted for scripts.
+- Each request reads the user from the database: a deleted account is refused at once and the role is always the current one.
+- Changing or resetting a password ends the user's other sessions (`sessionVersion` column, carried in the token as `sv`). The session that changes its password receives a new token.
+
+Password guessing (`server/middlewares/loginGuard.js`), per account and never per IP, since students share the campus address:
+- The first 10 failures for an email within 15 minutes answer normally.
+- Each further failure adds one second to the next attempt on that email, up to 10 seconds. Attempts on a delayed account are handled one after the other, so parallel requests do not bypass the delay.
+- A success, or 15 minutes without failure, resets the counter. Nobody is locked out; only a burst of parallel attempts on one account gets `429`.
+- The same applies to the current-password check of `PUT /api/auth/password`.
+- An unknown email takes as long to answer as a wrong password.
+
+HTTP:
+- `helmet` headers on API responses (HSTS is set by Traefik).
+- CORS is off: the client is served from the same origin. Set `CORS_ORIGIN` (comma-separated origins) only if another origin must call the API.
+- `trust proxy` covers loopback and private addresses (nginx in the pod, Traefik), so `req.ip` is the client address.
+
 ## First Start
 
 On first startup, a default admin account is created:
-- Email: admin@epitech.eu
-- Password: admin123
+- Email: `ADMIN_INITIAL_EMAIL` (default: admin@epitech.eu)
+- Password: `ADMIN_INITIAL_PASSWORD` if set, otherwise a random password printed once in the server logs
 
-**It is strongly recommended to change this password after the first login.**
+This only happens when the database contains no admin account.
+
+**Change this password after the first login** ("Password" in the menu).
 
 ## Development
 

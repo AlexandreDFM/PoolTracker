@@ -1,6 +1,6 @@
 services:
   client:
-    image: node:20-alpine
+    image: node:24-alpine
     working_dir: /app
     command: sh -c "npm install && npm start"
     ports:
@@ -8,7 +8,6 @@ services:
     environment:
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true
-      - WATCHPACK_POLLING=true
     volumes:
       - ./client:/app
       - /app/node_modules
@@ -20,7 +19,7 @@ services:
     tty: true
 
   server:
-    image: node:20-alpine
+    image: node:24-alpine
     working_dir: /app
     command: sh -c "npm install && npm run dev"
     ports:
@@ -56,14 +55,14 @@ services:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
     volumes:
       - ./db:/var/lib/mysql
-      - ./db/init:/docker-entrypoint-initdb.d:ro
     networks:
       - pool-tracker-network
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      # Password read from the container env, not passed on the command line
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_ROOT_PASSWORD\" mysqladmin ping -h localhost -u root"]
       interval: 5s
       timeout: 5s
       retries: 10

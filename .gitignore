@@ -38,4 +38,15 @@ coverage/
 db/
 
 # Kubernetes files
-deploy/kubernetes/production/secret.yaml
+k8s/**/secret.yaml
+
+# Ignore temporary files
+tmp/
+
+# Database dumps (personal data)
+backups/
+
+# Local audit reports
+RAPPORT.md
+UPDATE.md
+BENCHMARK.md

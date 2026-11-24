@@ -49,7 +49,7 @@ PoolTracker/
 
 1. Clone the repository:
    ```
-   git clone git@github.com:ItsKarmaOff/PoolTracker.git
+   git clone git@github.com:epitech-nice/PoolTracker.git
    cd PoolTracker
    ```
 
@@ -96,10 +96,14 @@ See the README files in the [client](client/README.md) and [server](server/READM
 ### Default Admin Account
 
 On the first startup, a default admin account is created:
-- Email: admin@epitech.eu
-- Password: admin123
+- Email: `ADMIN_INITIAL_EMAIL` (default: admin@epitech.eu)
+- Password: `ADMIN_INITIAL_PASSWORD` if set, otherwise a random password printed once in the server logs
 
-**It is strongly recommended to change this password after the first login.**
+This only happens when the database contains no admin account.
+
+**Change this password after the first login** ("Password" in the menu).
+
+Any user can change their password from "Password" in the menu. An admin (or an APE, for AER and student accounts) can reset a forgotten password from the Users page: the account goes back to first login.
 
 ### User Roles
 
@@ -153,8 +157,9 @@ For complete database management documentation, see [documentation/DB-MANAGEMENT
 - [Client Documentation](client/README.md)
 - [Server Documentation](server/README.md)
 - [Docker Documentation](docker/README.md)
+- [Development Mode](documentation/DEVELOPMENT.md)
 - [Database Management](documentation/DB-MANAGEMENT.md)
-- [Production Deployment](deploy/kubernetes/README.md)
+- [Deployment (Kubernetes, GitHub Actions, staging)](documentation/DEPLOYMENT.md)
 
 ## Contributing
 
