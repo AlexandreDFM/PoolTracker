@@ -1,194 +1,79 @@
-# 🔐 GitHub Secrets Setup Guide
+# GitHub Secrets and Cluster Access
 
-This guide helps you configure all the required GitHub Secrets for your PoolTracker production deployment pipeline.
+The workflow `.github/workflows/production-deployment.yml` reads the secrets below. Secret values are only passed to scripts through `env:` and quoted shell variables, never written into `run:` blocks.
 
-## 📋 Required GitHub Secrets
+## Secrets
 
-Navigate to your GitHub repository → Settings → Secrets and variables → Actions → New repository secret
+| Secret | Scope | Used for |
+|--------|-------|----------|
+| `KUBE_CONFIG` | Environment `production` | Base64 kubeconfig of the `github-deployer` account (see below) |
+| `GHCR_PULL_TOKEN` | Repository | Classic PAT with only `read:packages`: the cluster pulls the private image with it |
+| `GHCR_PULL_USER` | Repository, optional | Owner of that PAT, if it is not the repository owner |
+| `DB_USER` | Repository | MySQL user of the application |
+| `DB_PASSWORD` | Repository | Password of that user |
+| `JWT_SECRET` | Repository | JWT signing key (32+ random characters) |
+| `SESSION_SECRET` | Repository | Session key |
 
-### 🏗️ **Kubernetes Configuration**
+`GITHUB_TOKEN` (automatic) only pushes the image to GHCR during the build; it expires with the job, so it cannot be used as the cluster pull secret.
 
-| Secret Name | Description | Example Value | Required |
-|-------------|-------------|---------------|----------|
-| `KUBERNETES_URL` | Your Kubernetes cluster API endpoint | `https://k8s.your-cluster.com:6443` | ✅ |
-| `KUBERNETES_SECRET` | Base64-encoded kubeconfig or service account token | `eyJhbGc...` | ✅ |
+The workflow writes `DB_USER`, `DB_PASSWORD`, `JWT_SECRET` and `SESSION_SECRET` into the Kubernetes Secret `pool-tracker-secret-prod`, and the PAT into `github-container-registry`.
 
-### 🗄️ **Database Configuration**
+Generate a random value:
 
-| Secret Name | Description | Example Value | Required |
-|-------------|-------------|---------------|----------|
-| `PROD_DB_USER` | Production database username | `pool_tracker_user` | ✅ |
-| `PROD_DB_PASSWORD` | Production database password | `super_secure_password_123!` | ✅ |
-| `PROD_DB_NAME` | Production database name | `pool_tracker_prod` | ✅ |
-| `PROD_MYSQL_ROOT_PASSWORD` | MySQL root password | `root_password_456!` | ✅ |
-
-### 🔑 **Application Security**
-
-| Secret Name | Description | Example Value | Required |
-|-------------|-------------|---------------|----------|
-| `PROD_JWT_SECRET` | JWT signing secret (32+ chars) | `your-super-secure-jwt-secret-key-here-32chars` | ✅ |
-| `PROD_SESSION_SECRET` | Session encryption secret | `another-super-secure-session-secret-key` | ✅ |
-
-## 🚀 **Quick Setup Commands**
-
-### 1. Generate Secure Secrets
 ```bash
-# Generate JWT Secret (32 characters)
 openssl rand -base64 32
-
-# Generate Session Secret
-openssl rand -base64 32
-
-# Generate Database Password
-openssl rand -base64 24
 ```
 
-### 2. Kubernetes Service Account Setup
-If you don't have a service account token yet:
+Set a secret without echoing it:
 
 ```bash
-# Create service account
-kubectl create serviceaccount github-actions -n kube-system
-
-# Create cluster role binding
-kubectl create clusterrolebinding github-actions \
-  --clusterrole=cluster-admin \
-  --serviceaccount=kube-system:github-actions
-
-# Get the token (Kubernetes 1.24+)
-kubectl create token github-actions -n kube-system --duration=8760h
-
-# Get cluster URL
-kubectl config view --minify --output jsonpath='{.clusters[0].cluster.server}'
+gh secret set JWT_SECRET --repo epitech-nice/PoolTracker          # prompts for the value
+gh secret set KUBE_CONFIG --repo epitech-nice/PoolTracker --env production < kubeconfig.b64
 ```
 
-### 3. Base64 Encoding (if needed)
-```bash
-# Encode secrets to base64 (if required by your k8s setup)
-echo -n "your-secret-value" | base64
-```
+## Cluster access: the `github-deployer` account
 
-## 🔧 **Environment-Specific Configuration**
+The workflow deploys with the ServiceAccount `pool-tracker-prod/github-deployer`. Its Role ([deployer.yaml](../deploy/kubernetes/rbac/deployer.yaml)) only covers the `pool-tracker-prod` namespace and the resource kinds PoolTracker uses: ConfigMaps, Secrets, Services, PVCs, Deployments, Ingress, Traefik IngressRoutes and Middlewares, plus read access to pods, logs, events and cert-manager certificates. There is no delete, no exec and nothing cluster-wide.
 
-### **Production Environment**
-```bash
-# Database
-PROD_DB_USER="pool_tracker_user"
-PROD_DB_PASSWORD="$(openssl rand -base64 24)"
-PROD_DB_NAME="pool_tracker_prod" 
-PROD_MYSQL_ROOT_PASSWORD="$(openssl rand -base64 24)"
-
-# Security
-PROD_JWT_SECRET="$(openssl rand -base64 32)"
-PROD_SESSION_SECRET="$(openssl rand -base64 32)"
-```
-
-## 📝 **Adding Secrets via GitHub CLI**
-
-If you have GitHub CLI installed:
+One-time setup, with an admin kubeconfig (on the VPS: `sudo kubectl`):
 
 ```bash
-# Set repository (replace with your values)
-REPO="epitech-nice/PoolTracker"
+kubectl apply -f deploy/kubernetes/namespaces.yaml
+kubectl apply -f deploy/kubernetes/rbac/deployer.yaml
 
-# Kubernetes secrets
-gh secret set KUBERNETES_URL --repo $REPO --body "https://your-k8s-cluster.com:6443"
-gh secret set KUBERNETES_SECRET --repo $REPO --body "your-base64-encoded-kubeconfig-or-token"
-
-# Database secrets
-gh secret set PROD_DB_USER --repo $REPO --body "pool_tracker_user"
-gh secret set PROD_DB_PASSWORD --repo $REPO --body "your-secure-db-password"
-gh secret set PROD_DB_NAME --repo $REPO --body "pool_tracker_prod"
-gh secret set PROD_MYSQL_ROOT_PASSWORD --repo $REPO --body "your-secure-root-password"
-
-# Application secrets
-gh secret set PROD_JWT_SECRET --repo $REPO --body "your-32-char-jwt-secret"
-gh secret set PROD_SESSION_SECRET --repo $REPO --body "your-session-secret"
+# Prints the KUBE_CONFIG secret (base64, one line) and stores it without displaying it
+./deploy/kubernetes/rbac/make-kubeconfig.sh https://<api-server>:6443 \
+  | gh secret set KUBE_CONFIG --repo epitech-nice/PoolTracker --env production
 ```
 
-## 🔒 **Security Best Practices**
+Check the account:
 
-### ✅ **DO:**
-- Use strong, randomly generated passwords (24+ characters)
-- Rotate secrets regularly (every 90 days)
-- Use different secrets for different environments
-- Store secrets only in GitHub Secrets (never in code)
-- Use least-privilege Kubernetes service accounts
-- Monitor secret usage in GitHub Actions logs
-
-### ❌ **DON'T:**
-- Commit secrets to version control
-- Use default or weak passwords
-- Share secrets via chat/email
-- Use the same secrets across environments
-- Log secret values in workflows
-
-## 🧪 **Testing Secret Configuration**
-
-### Verify Secrets in Workflow
-The pipeline includes verification steps that will:
-1. ✅ Test Kubernetes connectivity
-2. ✅ Verify secret creation in cluster  
-3. ✅ Check application startup with secrets
-4. ✅ Run health checks
-
-### Manual Verification
 ```bash
-# Check if secrets exist in GitHub
-gh secret list --repo epitech-nice/PoolTracker
-
-# Test Kubernetes connectivity
-kubectl cluster-info --context your-context
-
-# Verify base64 encoding
-echo "your-encoded-secret" | base64 -d
+SA=system:serviceaccount:pool-tracker-prod:github-deployer
+kubectl auth can-i create deployments.apps -n pool-tracker-prod --as=$SA   # yes
+kubectl auth can-i delete persistentvolumeclaims -n pool-tracker-prod --as=$SA   # no
+kubectl auth can-i create deployments.apps -n kube-system --as=$SA   # no
 ```
 
-## 🔄 **Secret Rotation Procedure**
+The first workflow step runs the same `can-i` check and stops with an explicit error if the account cannot deploy.
 
-1. **Generate new secret values**
-2. **Update GitHub Secrets**
-3. **Trigger deployment workflow**
-4. **Verify application functionality**
-5. **Update any external references**
+### Rotating the token
 
-## 📞 **Troubleshooting**
+The token is stored in the Secret `github-deployer-token`. To rotate it, delete that Secret, apply `deployer.yaml` again (Kubernetes issues a new token) and run `make-kubeconfig.sh` again.
 
-### Common Issues:
+## What stays with the cluster admin
 
-**❌ "Invalid Kubernetes credentials"**
-- Verify `KUBERNETES_URL` format
-- Check `KUBERNETES_SECRET` is valid base64
-- Ensure service account has proper permissions
+The deploy account cannot touch cluster-wide resources, so these are installed and upgraded by hand, once for the whole cluster:
 
-**❌ "Database connection failed"**
-- Verify database secrets are correct
-- Check if database service is running
-- Ensure network connectivity
+- the `pool-tracker-prod` namespace (`deploy/kubernetes/namespaces.yaml`);
+- cert-manager and the `letsencrypt-prod` ClusterIssuer (shared with the other applications on the cluster). The TLS certificate itself is created and renewed by cert-manager from the `cert-manager.io/cluster-issuer` annotation of the Ingress;
+- a PVC change (storage class or size): the workflow stops with an error instead of touching the volume. See [KUBE-DB-BACKUP.md](KUBE-DB-BACKUP.md) for backup and restore.
 
-**❌ "JWT verification failed"**
-- Confirm `PROD_JWT_SECRET` is set
-- Verify secret is at least 32 characters
-- Check for encoding issues
+## Troubleshooting
 
-### Debug Commands:
-```bash
-# View workflow logs
-gh run list --repo epitech-nice/PoolTracker
-gh run view [run-id] --log
-
-# Check deployment status
-kubectl get all -n pool-tracker-prod
-kubectl describe pods -l app=pool-tracker -n pool-tracker-prod
-```
-
-## 🚀 **Ready to Deploy!**
-
-Once all secrets are configured:
-
-1. **Push to main branch** or **feature/deploy-prod**
-2. **Monitor workflow** in Actions tab
-3. **Verify deployment** at https://pool.nice-tek.eu
-4. **Check logs** if issues occur
-
-Your production deployment pipeline is now fully configured with secure secret management! 🎉
+| Error in the workflow | Fix |
+|-----------------------|-----|
+| `Secret KUBE_CONFIG is missing` | Run `make-kubeconfig.sh` and set the secret in the `production` environment |
+| `The deploy account cannot deploy in pool-tracker-prod` | Apply `deploy/kubernetes/rbac/deployer.yaml` |
+| `... is forbidden: User "system:serviceaccount:pool-tracker-prod:github-deployer" cannot ...` | A manifest uses a resource kind missing from the Role: add it to `deployer.yaml` and apply it |
+| Pods in `ImagePullBackOff` | `GHCR_PULL_TOKEN` missing or expired |
