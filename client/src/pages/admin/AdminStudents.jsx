@@ -2,8 +2,8 @@
  * ┌────────────────────────────────────────────────────────────────────────────
  * │ @author                    Christophe Vandevoir
  * ├────────────────────────────────────────────────────────────────────────────
- * │ @file           AdminStudents.js
- * │ @path          client/src/pages/admin/AdminStudents.js
+ * │ @file           AdminStudents.jsx
+ * │ @path          client/src/pages/admin/AdminStudents.jsx
  * │ @description   AdminStudents implementation
  * │ @version       1.0.0
  * │

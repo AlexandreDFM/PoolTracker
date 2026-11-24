@@ -2,8 +2,8 @@
  * ┌────────────────────────────────────────────────────────────────────────────
  * │ @author                    Christophe Vandevoir
  * ├────────────────────────────────────────────────────────────────────────────
- * │ @file           AdminUsers.js
- * │ @path          client/src/pages/admin/AdminUsers.js
+ * │ @file           AdminUsers.jsx
+ * │ @path          client/src/pages/admin/AdminUsers.jsx
  * │ @description   AdminUsers implementation
  * │ @version       1.0.0
  * │

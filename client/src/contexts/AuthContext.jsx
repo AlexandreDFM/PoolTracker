@@ -2,8 +2,8 @@
  * ┌────────────────────────────────────────────────────────────────────────────
  * │ @author                    Christophe Vandevoir
  * ├────────────────────────────────────────────────────────────────────────────
- * │ @file           AuthContext.js
- * │ @path          client/src/contexts/AuthContext.js
+ * │ @file           AuthContext.jsx
+ * │ @path          client/src/contexts/AuthContext.jsx
  * │ @description   AuthContext implementation
  * │ @version       1.0.0
  * │
@@ -26,19 +26,26 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Check if the user is already logged in (token in localStorage)
+    // Check if the user is already logged in (session cookie)
     useEffect(() => {
         const checkAuth = async () => {
-            const token = localStorage.getItem('token');
-            if (token) {
+            // Older versions kept the token in localStorage: move it into the cookie once
+            const storedToken = localStorage.getItem('token');
+            if (storedToken) {
+                localStorage.removeItem('token');
                 try {
-                    const { user } = await authService.getProfile();
-                    setUser(user);
+                    await authService.migrateStoredToken(storedToken);
                 } catch (error) {
-                    // If the token is invalid, remove it
-                    localStorage.removeItem('token');
-                    console.error('\x1b[31mError validating token:\x1b[0m', error);
+                    // Expired or revoked: the user logs in again
                 }
+            }
+
+            try {
+                const { user } = await authService.getProfile();
+                setUser(user);
+            } catch (error) {
+                // No valid session
+                setUser(null);
             }
             setLoading(false);
         };
@@ -56,8 +63,7 @@ export const AuthProvider = ({ children }) => {
                 return { requiresPasswordSet: true, setupToken: data.setupToken };
             }
 
-            // Otherwise, store the token and set the user
-            localStorage.setItem('token', data.token);
+            // The server has set the session cookie
             setUser(data.user);
             return { success: true, isFirstLogin: data.isFirstLogin };
         } catch (error) {
@@ -72,7 +78,6 @@ export const AuthProvider = ({ children }) => {
         try {
             setError(null);
             const data = await authService.setPassword(setupToken, password);
-            localStorage.setItem('token', data.token);
             setUser(data.user);
             return { success: true };
         } catch (error) {
@@ -82,9 +87,13 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const logout = () => {
-        localStorage.removeItem('token');
+    const logout = async () => {
         setUser(null);
+        try {
+            await authService.logout();
+        } catch (error) {
+            console.error('\x1b[31mLogout error:\x1b[0m', error);
+        }
     };
 
     // Check user role permissions

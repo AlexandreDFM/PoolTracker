@@ -2,8 +2,8 @@
  * ┌────────────────────────────────────────────────────────────────────────────
  * │ @author                    Christophe Vandevoir
  * ├────────────────────────────────────────────────────────────────────────────
- * │ @file          AdminQuests.js
- * │ @path          client/src/pages/admin/AdminQuests.js
+ * │ @file          AdminQuests.jsx
+ * │ @path          client/src/pages/admin/AdminQuests.jsx
  * │ @description   AdminQuests implementation
  * │ @version       1.0.0
  * │

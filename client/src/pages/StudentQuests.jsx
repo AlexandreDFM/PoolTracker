@@ -2,8 +2,8 @@
  * ┌────────────────────────────────────────────────────────────────────────────
  * │ @author                    Christophe Vandevoir
  * ├────────────────────────────────────────────────────────────────────────────
- * │ @file          StudentQuests.js
- * │ @path          client/src/pages/StudentQuests.js
+ * │ @file          StudentQuests.jsx
+ * │ @path          client/src/pages/StudentQuests.jsx
  * │ @description   StudentQuests implementation
  * │ @version       1.0.0
  * │

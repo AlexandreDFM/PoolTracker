@@ -2,8 +2,8 @@
  * ┌────────────────────────────────────────────────────────────────────────────
  * │ @author                    Christophe Vandevoir
  * ├────────────────────────────────────────────────────────────────────────────
- * │ @file          Header.js
- * │ @path          client/src/components/Header.js
+ * │ @file          Header.jsx
+ * │ @path          client/src/components/Header.jsx
  * │ @description   Header implementation
  * │ @version       1.0.1
  * │

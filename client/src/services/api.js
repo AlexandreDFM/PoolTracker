@@ -16,23 +16,11 @@
 
 import axios from 'axios';
 
+// The session is an HttpOnly cookie set by the server: the browser sends it
+// with every same-origin request, and page scripts cannot read it
 const api = axios.create({
     baseURL: '/api',
 });
-
-// Intercept requests to add JWT token
-api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
-    }
-);
 
 export const authService = {
     login: async (email, password) => {
@@ -56,6 +44,19 @@ export const authService = {
 
     changePassword: async (currentPassword, newPassword) => {
         const response = await api.put('/auth/password', { currentPassword, newPassword });
+        return response.data;
+    },
+
+    logout: async () => {
+        const response = await api.post('/auth/logout');
+        return response.data;
+    },
+
+    // One-time move of a token stored by an older version of the app into the cookie
+    migrateStoredToken: async (token) => {
+        const response = await api.post('/auth/session', null, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
         return response.data;
     },
 

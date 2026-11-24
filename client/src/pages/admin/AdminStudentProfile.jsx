@@ -2,8 +2,8 @@
  * ┌────────────────────────────────────────────────────────────────────────────
  * │ @author                    Nicolas Toro
  * ├────────────────────────────────────────────────────────────────────────────
- * │ @file           AdminStudentProfile.js
- * │ @path          client/src/pages/admin/AdminStudentProfile.js
+ * │ @file           AdminStudentProfile.jsx
+ * │ @path          client/src/pages/admin/AdminStudentProfile.jsx
  * │ @description   Admin view for a single student's profile (view-only)
  * │ @version       1.0.0
  * │

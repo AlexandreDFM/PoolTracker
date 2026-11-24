@@ -2,8 +2,8 @@
  * ┌────────────────────────────────────────────────────────────────────────────
  * │ @author                    Christophe Vandevoir
  * ├────────────────────────────────────────────────────────────────────────────
- * │ @file           AdminTeams.js
- * │ @path          client/src/pages/admin/AdminTeams.js
+ * │ @file           AdminTeams.jsx
+ * │ @path          client/src/pages/admin/AdminTeams.jsx
  * │ @description   AdminTeams implementation
  * │ @version       1.0.0
  * │
