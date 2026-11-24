@@ -140,6 +140,22 @@ The API uses JWT (JSON Web Token) for authentication. Passwords are hashed using
 - Admin routes: reserved for users with the "ADMIN" role
 - Personal routes: accessible by the administrator or the concerned student
 
+Sessions:
+- Each request reads the user from the database: a deleted account is refused at once and the role is always the current one.
+- Changing or resetting a password ends the user's other sessions (`sessionVersion` column, carried in the token as `sv`). The session that changes its password receives a new token.
+
+Password guessing (`server/middlewares/loginGuard.js`), per account and never per IP, since students share the campus address:
+- The first 10 failures for an email within 15 minutes answer normally.
+- Each further failure adds one second to the next attempt on that email, up to 10 seconds. Attempts on a delayed account are handled one after the other, so parallel requests do not bypass the delay.
+- A success, or 15 minutes without failure, resets the counter. Nobody is locked out; only a burst of parallel attempts on one account gets `429`.
+- The same applies to the current-password check of `PUT /api/auth/password`.
+- An unknown email takes as long to answer as a wrong password.
+
+HTTP:
+- `helmet` headers on API responses (HSTS is set by Traefik).
+- CORS is off: the client is served from the same origin. Set `CORS_ORIGIN` (comma-separated origins) only if another origin must call the API.
+- `trust proxy` covers loopback and private addresses (nginx in the pod, Traefik), so `req.ip` is the client address.
+
 ## First Start
 
 On first startup, a default admin account is created:
