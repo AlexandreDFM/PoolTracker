@@ -155,6 +155,7 @@ For complete database management documentation, see [documentation/DB-MANAGEMENT
 - [Client Documentation](client/README.md)
 - [Server Documentation](server/README.md)
 - [Docker Documentation](docker/README.md)
+- [Development Mode](documentation/DEVELOPMENT.md)
 - [Database Management](documentation/DB-MANAGEMENT.md)
 - [Production Deployment](deploy/kubernetes/README.md)
 
