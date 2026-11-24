@@ -40,7 +40,7 @@ spec:
       # answer: wait for the database first
       initContainers:
         - name: wait-for-database
-          image: mysql:8.0.35
+          image: mysql:8.4.13
           command:
             - sh
             - -c
@@ -54,6 +54,7 @@ spec:
             - secretRef:
                 name: pool-tracker-app
           securityContext:
+            readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
@@ -76,10 +77,17 @@ spec:
                 optional: true
             - secretRef:
                 name: pool-tracker-app           # GitHub Secrets
+          # Read-only image: nginx writes only its pid and temp files (/tmp,
+          # large proxied responses such as the quest PDF included); its logs
+          # go to the container output
           securityContext:
+            readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           # Leave time for the ingress to stop sending requests before nginx
           # and Node stop (no cut connection during a rollout)
           lifecycle:
@@ -120,3 +128,7 @@ spec:
             limits:
               cpu: 300m
               memory: 512Mi
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi

@@ -12,14 +12,14 @@ mkdir -p /tmp/nginx/client_body /tmp/nginx/proxy /tmp/nginx/fastcgi /tmp/nginx/u
 
 # Test nginx configuration
 echo "Testing nginx configuration..."
-if ! nginx -t 2>&1; then
+if ! nginx -e stderr -t 2>&1; then
     echo "ERROR: Nginx configuration test failed"
     exit 1
 fi
 
 # Start nginx in background
 echo "Starting nginx web server..."
-nginx -g "daemon on;"
+nginx -e stderr -g "daemon on;"
 
 # Wait a moment for nginx to start
 sleep 2
