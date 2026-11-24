@@ -15,9 +15,13 @@
  */
 
 const jwt = require('jsonwebtoken');
+const User = require('../models/user');
 
-// Middleware to verify JWT token
-exports.authenticateJWT = (req, res, next) => {
+// Middleware to verify JWT token. The user is read from the database on each
+// request: a deleted account is refused, the role is the current one, and
+// tokens issued before the last password change or reset (older
+// sessionVersion) are refused.
+exports.authenticateJWT = async (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
@@ -26,15 +30,32 @@ exports.authenticateJWT = (req, res, next) => {
 
     const token = authHeader.split(' ')[1];
 
-    jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] }, (err, user) => {
-        // Purpose-limited tokens (e.g. first-login setup) are not session tokens
-        if (err || user.purpose) {
-            return res.status(403).json({ message: 'Invalid or expired token' });
+    let payload;
+    try {
+        payload = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
+    } catch (err) {
+        return res.status(403).json({ message: 'Invalid or expired token' });
+    }
+
+    // Purpose-limited tokens (e.g. first-login setup) are not session tokens
+    if (payload.purpose) {
+        return res.status(403).json({ message: 'Invalid or expired token' });
+    }
+
+    try {
+        const user = await User.findSessionUser(payload.id);
+
+        // Tokens issued before this mechanism carry no version: they match version 0
+        if (!user || (payload.sv || 0) !== user.sessionVersion) {
+            return res.status(401).json({ message: 'Session expired. Please log in again.' });
         }
 
-        req.user = user;
+        req.user = { id: user.id, email: user.email, role: user.role };
         next();
-    });
+    } catch (error) {
+        console.error('\x1b[31mAuthentication error:\x1b[0m', error);
+        res.status(500).json({ message: 'Server error during authentication' });
+    }
 };
 
 // Middleware to check if the user is an administrator

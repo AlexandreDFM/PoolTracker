@@ -16,6 +16,12 @@
 
 const User = require('../models/user');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const loginGuard = require('../middlewares/loginGuard');
+
+// Compared against when the email is unknown, so that the response time does
+// not reveal whether an account exists
+const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 10);
 
 // Token validity period: 24h
 const TOKEN_EXPIRY = '24h';
@@ -39,7 +45,8 @@ const generateToken = (user) => {
         {
             id: user.id,
             email: user.email,
-            role: user.role
+            role: user.role,
+            sv: user.sessionVersion || 0
         },
         process.env.JWT_SECRET,
         { expiresIn: TOKEN_EXPIRY }
@@ -51,9 +58,20 @@ exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
+        if (typeof email !== 'string' || !email.trim()) {
+            return res.status(400).json({ message: 'Email is required' });
+        }
+
+        const guardKey = `email:${email.trim().toLowerCase()}`;
+        if (!(await loginGuard.wait(guardKey))) {
+            return loginGuard.tooManyAttempts(res);
+        }
+
         // Check if the user exists
         const user = await User.findByEmail(email);
         if (!user) {
+            await User.verifyPassword(String(password || ''), DUMMY_HASH);
+            loginGuard.recordFailure(guardKey);
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
@@ -67,16 +85,18 @@ exports.login = async (req, res) => {
         }
 
         // Check if the password is valid
-        const isPasswordValid = await User.verifyPassword(password, user.password);
+        const isPasswordValid = await User.verifyPassword(String(password || ''), user.password);
         if (!isPasswordValid) {
+            loginGuard.recordFailure(guardKey);
             return res.status(401).json({ message: 'Invalid credentials' });
         }
+        loginGuard.recordSuccess(guardKey);
 
         // Generate a JWT token
         const token = generateToken(user);
 
         // Return user information without the password
-        const { password: _, ...userWithoutPassword } = user;
+        const { password: _, sessionVersion: __, ...userWithoutPassword } = user;
 
         res.status(200).json({
             message: 'Authentication successful',
@@ -138,7 +158,7 @@ exports.setPassword = async (req, res) => {
         const token = generateToken(user);
 
         // Return user information without the password
-        const { password: _, ...userWithoutPassword } = user;
+        const { password: _, sessionVersion: __, ...userWithoutPassword } = user;
 
         res.status(200).json({
             message: 'Password set successfully',
@@ -168,21 +188,31 @@ exports.changePassword = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        const guardKey = `user:${user.id}`;
+        if (!(await loginGuard.wait(guardKey))) {
+            return loginGuard.tooManyAttempts(res);
+        }
+
         const isPasswordValid = user.password
             ? await User.verifyPassword(currentPassword, user.password)
             : false;
         if (!isPasswordValid) {
+            loginGuard.recordFailure(guardKey);
             // 400, not 401: the session itself is valid
             return res.status(400).json({ message: 'Current password is incorrect' });
         }
+        loginGuard.recordSuccess(guardKey);
 
         if (currentPassword === newPassword) {
             return res.status(400).json({ message: 'The new password must be different from the current one' });
         }
 
+        // Sessions opened before this change stop working; this one gets a new token
         await User.update(user.id, { password: newPassword });
+        await User.revokeSessions(user.id);
+        const updatedUser = await User.findById(user.id);
 
-        res.status(200).json({ message: 'Password changed successfully' });
+        res.status(200).json({ message: 'Password changed successfully', token: generateToken(updatedUser) });
     } catch (error) {
         console.error('\x1b[31mPassword change error:\x1b[0m', error);
         res.status(500).json({ message: 'Server error while changing password' });
@@ -200,7 +230,7 @@ exports.getProfile = async (req, res) => {
         }
 
         // Return user information without the password
-        const { password, ...userWithoutPassword } = user;
+        const { password, sessionVersion, ...userWithoutPassword } = user;
 
         res.status(200).json({ user: userWithoutPassword });
     } catch (error) {

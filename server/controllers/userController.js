@@ -23,7 +23,7 @@ exports.getAllUsers = async (req, res) => {
 
         // Remove password field from response
         const usersWithoutPassword = users.map(user => {
-            const { password, ...userWithoutPassword } = user;
+            const { password, sessionVersion, ...userWithoutPassword } = user;
             return userWithoutPassword;
         });
 
@@ -49,7 +49,7 @@ exports.getUsersByRole = async (req, res) => {
 
         // Remove password field from response
         const usersWithoutPassword = users.map(user => {
-            const { password, ...userWithoutPassword } = user;
+            const { password, sessionVersion, ...userWithoutPassword } = user;
             return userWithoutPassword;
         });
 
@@ -278,6 +278,7 @@ exports.resetPassword = async (req, res) => {
         }
 
         await User.update(user.id, { password: null, isFirstLogin: true });
+        await User.revokeSessions(user.id);
 
         res.status(200).json({ message: 'Password reset. The user will set a new one at the next login (first login).' });
     } catch (error) {

@@ -30,7 +30,9 @@ const ChangePassword = () => {
 
         setLoading(true);
         try {
-            await authService.changePassword(currentPassword, newPassword);
+            const data = await authService.changePassword(currentPassword, newPassword);
+            // Sessions opened before the change are revoked; keep this one with the new token
+            if (data.token) localStorage.setItem('token', data.token);
             toast.success('Password changed successfully');
             navigate('/', { replace: true });
         } catch (error) {

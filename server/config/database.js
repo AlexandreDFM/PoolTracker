@@ -65,6 +65,22 @@ async function initDatabase() {
             )
         `);
 
+    // Columns added after the first release. MySQL 8.0 has no ADD COLUMN IF NOT EXISTS
+    const addColumnIfMissing = async (table, column, definition) => {
+      const [rows] = await pool.query(
+        `SELECT 1 FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+        [table, column],
+      );
+      if (rows.length === 0) {
+        await pool.query(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+        console.log(`\x1b[32mColumn ${table}.${column} added\x1b[0m`);
+      }
+    };
+
+    // Incremented on each password change or reset: older sessions are refused
+    await addColumnIfMissing("USERS", "sessionVersion", "INT NOT NULL DEFAULT 0");
+
     // Teams table
     await pool.query(`
             CREATE TABLE IF NOT EXISTS TEAMS (
