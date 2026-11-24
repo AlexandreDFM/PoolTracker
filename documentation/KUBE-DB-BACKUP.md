@@ -94,7 +94,7 @@ ssh alexandredfm
 | `backup --stdout` | Stream dump to stdout (used internally by local wrapper) |
 | `restore [file\|latest]` | Restore from a VPS backup file |
 | `restore --stdin` | Read SQL from stdin (used internally by local wrapper) |
-| `reset` | Backup → DROP → CREATE → re-run init SQL |
+| `reset` | Backup → DROP → CREATE → restart the application |
 | `list` | List VPS backups |
 | `status` | Pod, PVC, DB table stats |
 | `diff <a> <b>` | Compare two backup files |
@@ -143,8 +143,8 @@ ssh alexandredfm
 
 1. Creates a safety backup first
 2. `DROP DATABASE` + `CREATE DATABASE` (fresh, empty)
-3. Re-runs `/docker-entrypoint-initdb.d/01-init-production.sql` from the configmap mount
-4. Result: a clean platform with the default schema and admin user
+3. Restarts the application, which creates its schema on startup
+4. Result: a clean platform with the application schema and a new admin account (password printed once in the application logs, or `ADMIN_INITIAL_PASSWORD`)
 
 ## Backup Directory Layout
 

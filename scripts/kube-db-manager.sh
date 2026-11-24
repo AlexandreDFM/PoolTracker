@@ -19,6 +19,7 @@ NC='\033[0m'
 NAMESPACE="pool-tracker-prod"
 DB_DEPLOYMENT="pool-tracker-db-deployment-prod"
 DB_SELECTOR="app=mysql,environment=production"
+APP_DEPLOYMENT="pool-tracker-deployment-prod"
 DB_NAME="pool_tracker_prod"
 DB_USER="root"
 BACKUP_DIR="$HOME/pooltracker-backups"
@@ -257,7 +258,7 @@ cmd_reset() {
     warn "This will:"
     warn "  1. Backup the current database"
     warn "  2. DROP all tables"
-    warn "  3. Re-run the init SQL to create a fresh schema"
+    warn "  3. Restart the application, which creates a fresh schema and a new admin account"
     echo ""
     echo -n "Type 'RESET' to confirm: "
     read -r confirm
@@ -282,16 +283,13 @@ cmd_reset() {
 
     ok "Database $DB_NAME recreated (empty)"
 
-    # Step 3: re-run init SQL from the configmap mount
-    info "Step 3/3 — Re-running init SQL..."
-    local init_path="/docker-entrypoint-initdb.d/01-init-production.sql"
-    if kube_exec "$pod" test -f "$init_path"; then
-        kube_exec "$pod" sh -c "$MYSQL_BIN -u $DB_USER -p'$password' $DB_NAME < $init_path"
-        ok "Init SQL applied"
-    else
-        warn "Init SQL not found at $init_path inside the pod."
-        warn "You may need to restore from a backup or apply init SQL manually."
-    fi
+    # Step 3: the application creates its schema on startup (server/config/database.js)
+    info "Step 3/3 — Restarting the application to recreate the schema..."
+    $KUBECTL rollout restart deployment/"$APP_DEPLOYMENT" -n "$NAMESPACE"
+    $KUBECTL rollout status deployment/"$APP_DEPLOYMENT" -n "$NAMESPACE" --timeout=300s
+    ok "Application restarted"
+    info "The new admin password is printed once in the application logs:"
+    info "  $KUBECTL logs deployment/$APP_DEPLOYMENT -n $NAMESPACE | grep 'Default admin'"
 
     ok "Platform reset complete. A pre-reset backup has been saved."
 }

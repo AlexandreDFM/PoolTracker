@@ -7,7 +7,6 @@ This guide helps you test the complete production setup locally using Docker Com
 - **`docker-compose.prod.yml`** - Production-like Docker Compose setup
 - **`.env.prod.template`** - Environment variables template
 - **`test-production.sh`** - Automated production testing script
-- **`db/init/01-init-production.sql`** - Production database schema
 - **`nginx/prod.conf`** - Production-like nginx configuration (for SSL testing)
 
 ## 🎯 Quick Start
