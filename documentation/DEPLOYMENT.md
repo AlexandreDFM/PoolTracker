@@ -2,10 +2,10 @@
 
 PoolTracker runs on the k3s cluster of the VPS, behind Traefik, with TLS from cert-manager (Let's Encrypt). GitHub Actions builds one image and deploys it with a deploy account limited to the app's namespace.
 
-| Environment | URL | Branch | Namespace | GitHub environment |
-|---|---|---|---|---|
-| Production | https://pool.nice-tek.eu (`www.` redirects to it) | `main` | `pool-tracker-prod` | `production` |
-| Staging | https://pool.ppd.nice-tek.eu | `develop` | `pool-tracker-staging` | `staging` |
+| Environment | URL | Branch | Namespace | Secret/Variable prefix | GitHub environment |
+|---|---|---|---|---|---|
+| Production | https://pool.nice-tek.eu (`www.` redirects to it) | `main` | `pool-tracker-prod` | `PRD_` | `production` |
+| Staging | https://pool.ppd.nice-tek.eu | `develop` | `pool-tracker-staging` | `PPD_` | `staging` |
 
 ```
 browser ─HTTPS─> Traefik (Ingress pool-tracker-web, middlewares)
@@ -24,7 +24,7 @@ CronJob pool-tracker-db-backup (production, 03:00 UTC) ──> PVC pool-tracker-
 |---|---|
 | `k8s/cluster/namespace.yaml` | Both namespaces (cluster admin, once) |
 | `k8s/rbac/deployer.yaml`, `deployer-staging.yaml` | Deploy account `github-deployer` per namespace (cluster admin, once) |
-| `k8s/rbac/make-kubeconfig.sh` | Prints the `KUBE_CONFIG` secret of an environment |
+| `k8s/rbac/make-kubeconfig.sh` | Prints the `PRD_KUBE_CONFIG` / `PPD_KUBE_CONFIG` secret |
 | `k8s/base/` | Manifests shared by both environments: constants ConfigMap, MySQL (PVC, Deployment, Service), web Deployment and Service, Traefik middlewares |
 | `k8s/production/` | Production overlay: Ingress (+ `www` redirect), backup CronJob and its volume |
 | `k8s/staging/` | Staging overlay: Ingress, database name `pool_tracker_staging`, 2 Gi volume |
@@ -43,11 +43,11 @@ On the VPS, `kubectl` is `sudo kubectl`.
 kubectl apply -f k8s/cluster/namespace.yaml
 kubectl apply -f k8s/rbac/deployer.yaml -f k8s/rbac/deployer-staging.yaml
 
-# Store each environment's KUBE_CONFIG without displaying it
+# Store each environment's kubeconfig without displaying it
 ./k8s/rbac/make-kubeconfig.sh https://<api-server>:6443 \
-  | gh secret set KUBE_CONFIG --env production --repo epitech-nice/PoolTracker
+  | gh secret set PRD_KUBE_CONFIG --repo epitech-nice/PoolTracker
 NAMESPACE=pool-tracker-staging ./k8s/rbac/make-kubeconfig.sh https://<api-server>:6443 \
-  | gh secret set KUBE_CONFIG --env staging --repo epitech-nice/PoolTracker
+  | gh secret set PPD_KUBE_CONFIG --repo epitech-nice/PoolTracker
 ```
 
 The deploy accounts manage only the kinds the manifests use (ConfigMaps, Secrets, Services, PVCs, Deployments, Ingresses, Traefik Middlewares, CronJobs), with no delete, no exec and nothing outside their namespace. Removing an object is a deliberate admin action.
@@ -65,29 +65,35 @@ kubectl auth can-i get secrets -n kube-system --as=$SA                         #
 
 ## GitHub settings
 
-Each environment (`production`, `staging`) has its own values.
+Secrets and Variables are **repository-level**, prefixed with `PRD_` (production) or `PPD_` (staging): `PRD_JWT_SECRET`, `PPD_JWT_SECRET`... The deploy workflow receives the prefix from `build.yaml` and reads `secrets[<prefix>_<NAME>]`. The GitHub environments `production` and `staging` only record the deployments and their URL; they hold no secret.
+
+Repository-level secrets are readable by every workflow of the repository, whatever the branch: changes to `.github/workflows/` deserve the same review as production access.
 
 ### Secrets
 
-| Secret | Scope | Required | Use |
-|---|---|---|---|
-| `KUBE_CONFIG` | environment | yes | Kubeconfig of the environment's `github-deployer` |
-| `DB_USER`, `DB_PASSWORD` | environment | yes | MySQL user of the app (also created by MySQL when its volume is initialized) |
-| `MYSQL_ROOT_PASSWORD` | environment | yes | MySQL root (backups, admin); distinct from `DB_PASSWORD` |
-| `JWT_SECRET` | environment | yes | Session signing key (32+ random characters) |
-| `ADMIN_INITIAL_EMAIL`, `ADMIN_INITIAL_PASSWORD` | environment | no | First admin account, only when the database has no admin |
-| `GHCR_PULL_TOKEN` | repository | yes (private package) | Classic PAT with only `read:packages`: the cluster pulls the image with it |
-| `GHCR_PULL_USER` | repository | no | Owner of that PAT, if not the repository owner |
+| Secret (`PRD_` / `PPD_` prefix) | Required | Use |
+|---|---|---|
+| `<prefix>_KUBE_CONFIG` | yes | Kubeconfig of the environment's `github-deployer` |
+| `<prefix>_DB_USER`, `<prefix>_DB_PASSWORD` | yes | MySQL user of the app (also created by MySQL when its volume is initialized) |
+| `<prefix>_MYSQL_ROOT_PASSWORD` | yes | MySQL root (backups, admin); distinct from the app password |
+| `<prefix>_JWT_SECRET` | yes | Session signing key (32+ random characters) |
+| `<prefix>_ADMIN_INITIAL_EMAIL`, `<prefix>_ADMIN_INITIAL_PASSWORD` | no | First admin account, only when the database has no admin |
+| `GHCR_PULL_TOKEN` (no prefix) | yes (private package) | Classic PAT with only `read:packages`: the cluster pulls the image with it |
+| `GHCR_PULL_USER` (no prefix) | no | Owner of that PAT, if not the repository owner |
 
-The workflow writes them into the Kubernetes Secrets `pool-tracker-app` (application), `pool-tracker-db` (MySQL) and `github-container-registry` (pull secret). Values reach the scripts through `env:` only.
+The workflow writes them into the Kubernetes Secrets `pool-tracker-app` (application), `pool-tracker-db` (MySQL) and `github-container-registry` (pull secret). Values reach the scripts through `env:` only. Generate a value and store it without displaying it:
+
+```bash
+openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | cut -c1-32 | gh secret set PPD_DB_PASSWORD --repo epitech-nice/PoolTracker
+```
 
 ### Variables
 
-| Variable | Scope | Required | Use |
-|---|---|---|---|
-| `PUBLIC_SITE_URL` | environment | yes | Environment URL and smoke tests (`https://pool.nice-tek.eu`, `https://pool.ppd.nice-tek.eu`) |
-| `CORS_ORIGIN` | environment | no | Other origins allowed to call the API (off by default: same origin) |
-| `IMAGE_PLATFORMS` | repository | no | Build platforms (default `linux/amd64`) |
+| Variable | Required | Use |
+|---|---|---|
+| `<prefix>_PUBLIC_SITE_URL` | yes | Environment URL and smoke tests (`https://pool.nice-tek.eu`, `https://pool.ppd.nice-tek.eu`) |
+| `<prefix>_CORS_ORIGIN` | no | Other origins allowed to call the API (off by default: same origin) |
+| `IMAGE_PLATFORMS` (no prefix) | no | Build platforms (default `linux/amd64`) |
 
 They become the ConfigMap `pool-tracker-app-config`. Constants (`NODE_ENV`, `DB_HOST`, `DB_NAME`) are in `k8s/base/configmap.yaml`.
 
@@ -95,7 +101,7 @@ They become the ConfigMap `pool-tracker-app-config`. Constants (`NODE_ENV`, `DB_
 
 A push on `main` deploys production; a push on `develop` deploys staging. The flow is feature branch → pull request to `develop` (staging) → pull request to `main` (production).
 
-Deploy steps: connect with `KUBE_CONFIG`, check the account's rights, registry pull secret, settings, secrets, `kubectl apply -k` with the image tag set to the commit SHA, rollout of the database then the web pod, smoke tests on `PUBLIC_SITE_URL` (`/api/health`, `/`, `/api/auth/profile` = 401, HSTS header). On failure the job prints pods, logs and events.
+Deploy steps: connect with `<prefix>_KUBE_CONFIG`, check the account's rights, registry pull secret, settings, secrets, `kubectl apply -k` with the image tag set to the commit SHA, rollout of the database then the web pod, smoke tests on `<prefix>_PUBLIC_SITE_URL` (`/api/health`, `/`, `/api/auth/profile` = 401, HSTS header). On failure the job prints pods, logs and events.
 
 ### Probes
 
@@ -137,9 +143,9 @@ Both volumes use `local-path-retain`: deleting a PVC keeps its data directory on
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `Secret KUBE_CONFIG is missing` | Environment not set up | Run `make-kubeconfig.sh` for that environment |
+| `Secret PRD_KUBE_CONFIG is missing` (or `PPD_`) | Environment not set up | Run `make-kubeconfig.sh` for that environment |
 | `The deploy account cannot manage <kind>` | A manifest uses a kind missing from the Role | Add it to `k8s/rbac/deployer*.yaml` and apply as admin |
-| `Secret <NAME> is required` | Environment secret missing | Set it in Settings → Environments |
+| `Secret PRD_<NAME> is required` (or `PPD_`) | Secret missing | Set it in Settings → Secrets and variables → Actions |
 | Pods in `ImagePullBackOff` | `GHCR_PULL_TOKEN` missing or expired | Create a new `read:packages` PAT and update the secret |
 | Web pod not ready, `/api/health` = 503 | Database unreachable | `kubectl -n $N logs -l app.kubernetes.io/component=database` |
 | Certificate not ready on a new host | DNS not pointing to the VPS, or HTTP-01 challenge blocked | `kubectl -n $N get certificate,challenges`; check the DNS record |
