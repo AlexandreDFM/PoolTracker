@@ -39,3 +39,15 @@ db/
 
 # Kubernetes files
 deploy/kubernetes/production/secret.yaml
+deploy/kubernetes/preproduction/secret.yaml
+
+# Ignore temporary files
+tmp/
+
+# Database dumps (personal data)
+backups/
+
+# Local audit reports
+RAPPORT.md
+UPDATE.md
+BENCHMARK.md
