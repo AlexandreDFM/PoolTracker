@@ -37,6 +37,9 @@ router.post('/aer', authenticateJWT, canManageAccountType('AER'), userController
 router.put('/aer/:id', authenticateJWT, canManageAccountType('AER'), userController.updateAER);
 router.delete('/aer/:id', authenticateJWT, canManageAccountType('AER'), userController.deleteAER);
 
+// Reset a user's password (back to first login) - ADMIN for every account, APE for AER and STUDENT
+router.post('/:id/reset-password', authenticateJWT, hasAdminPrivileges, userController.resetPassword);
+
 // Generic user update route - for updating any user including their role (admin only)
 router.put('/:id', authenticateJWT, hasAdminPrivileges, userController.updateUser);
 

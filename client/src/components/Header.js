@@ -242,6 +242,14 @@ const Header = () => {
                                     </Link>
                                 </li>
                             )}
+                            <li>
+                                <Link
+                                    to="/account/password"
+                                    onClick={handleNavClick}
+                                >
+                                    Password
+                                </Link>
+                            </li>
                         </ul>
                     </nav>
                 )}
@@ -503,6 +511,14 @@ const Header = () => {
                                 </Link>
                             </li>
                         )}
+                        <li>
+                            <Link
+                                to="/account/password"
+                                onClick={handleNavClick}
+                            >
+                                Password
+                            </Link>
+                        </li>
                     </ul>
                 </nav>
             )}
