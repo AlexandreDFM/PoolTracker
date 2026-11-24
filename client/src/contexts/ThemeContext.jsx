@@ -2,8 +2,8 @@
  * ┌────────────────────────────────────────────────────────────────────────────
  * │ @author                    Alexandre DE FREITAS MARTINS
  * ├────────────────────────────────────────────────────────────────────────────
- * │ @file          ThemeContext.js
- * │ @path          client/src/contexts/ThemeContext.js
+ * │ @file          ThemeContext.jsx
+ * │ @path          client/src/contexts/ThemeContext.jsx
  * │ @description   Theme context for managing dark mode and seasonal themes
  * │ @version       1.0.0
  * │

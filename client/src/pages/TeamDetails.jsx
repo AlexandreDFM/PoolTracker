@@ -2,8 +2,8 @@
  * ┌────────────────────────────────────────────────────────────────────────────
  * │ @author                    Christophe Vandevoir
  * ├────────────────────────────────────────────────────────────────────────────
- * │ @file           TeamDetails.js
- * │ @path          client/src/pages/TeamDetails.js
+ * │ @file           TeamDetails.jsx
+ * │ @path          client/src/pages/TeamDetails.jsx
  * │ @description   TeamDetails implementation
  * │ @version       1.0.0
  * │

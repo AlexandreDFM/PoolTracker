@@ -18,6 +18,7 @@ const User = require('../models/user');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const loginGuard = require('../middlewares/loginGuard');
+const { setSessionCookie, clearSessionCookie } = require('../middlewares/session');
 
 // Compared against when the email is unknown, so that the response time does
 // not reveal whether an account exists
@@ -92,8 +93,8 @@ exports.login = async (req, res) => {
         }
         loginGuard.recordSuccess(guardKey);
 
-        // Generate a JWT token
-        const token = generateToken(user);
+        // The session token goes into the HttpOnly cookie, never into the body
+        setSessionCookie(res, generateToken(user));
 
         // Return user information without the password
         const { password: _, sessionVersion: __, ...userWithoutPassword } = user;
@@ -101,7 +102,6 @@ exports.login = async (req, res) => {
         res.status(200).json({
             message: 'Authentication successful',
             user: userWithoutPassword,
-            token,
             isFirstLogin: user.isFirstLogin
         });
     } catch (error) {
@@ -154,16 +154,14 @@ exports.setPassword = async (req, res) => {
         // Get the updated user
         const user = await User.findById(userId);
 
-        // Generate a JWT token
-        const token = generateToken(user);
+        setSessionCookie(res, generateToken(user));
 
         // Return user information without the password
         const { password: _, sessionVersion: __, ...userWithoutPassword } = user;
 
         res.status(200).json({
             message: 'Password set successfully',
-            user: userWithoutPassword,
-            token
+            user: userWithoutPassword
         });
     } catch (error) {
         console.error('\x1b[31mPassword setting error:\x1b[0m', error);
@@ -212,10 +210,33 @@ exports.changePassword = async (req, res) => {
         await User.revokeSessions(user.id);
         const updatedUser = await User.findById(user.id);
 
-        res.status(200).json({ message: 'Password changed successfully', token: generateToken(updatedUser) });
+        setSessionCookie(res, generateToken(updatedUser));
+        res.status(200).json({ message: 'Password changed successfully' });
     } catch (error) {
         console.error('\x1b[31mPassword change error:\x1b[0m', error);
         res.status(500).json({ message: 'Server error while changing password' });
+    }
+};
+
+// End the session in this browser
+exports.logout = (req, res) => {
+    clearSessionCookie(res);
+    res.status(200).json({ message: 'Logged out' });
+};
+
+// One-time migration for clients that kept the token in localStorage: the
+// token, already checked by authenticateJWT, is moved into the cookie
+exports.createSession = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        setSessionCookie(res, generateToken(user));
+        res.status(200).json({ message: 'Session created' });
+    } catch (error) {
+        console.error('\x1b[31mSession creation error:\x1b[0m', error);
+        res.status(500).json({ message: 'Server error while creating session' });
     }
 };
 

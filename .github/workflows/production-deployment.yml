@@ -276,7 +276,8 @@ jobs:
           }
           check /health 200
           check / 200
-          check /api/auth/profile 401   # reaches Node: unauthenticated request is refused
+          check /api/health 200         # Node and the database answer
+          check /api/auth/profile 401   # unauthenticated request is refused
           if ! curl -sI --max-time 15 "$SITE_URL/" | grep -qi '^strict-transport-security:'; then
               echo "::error::Strict-Transport-Security header missing"
               fail=1

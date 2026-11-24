@@ -2,8 +2,8 @@
  * ┌────────────────────────────────────────────────────────────────────────────
  * │ @author                    Christophe Vandevoir
  * ├────────────────────────────────────────────────────────────────────────────
- * │ @file           AdminPoints.js
- * │ @path          client/src/pages/admin/AdminPoints.js
+ * │ @file           AdminPoints.jsx
+ * │ @path          client/src/pages/admin/AdminPoints.jsx
  * │ @description   AdminPoints implementation
  * │ @version       1.0.0
  * │

@@ -2,8 +2,8 @@
  * ┌────────────────────────────────────────────────────────────────────────────
  * │ @author                    Christophe Vandevoir
  * ├────────────────────────────────────────────────────────────────────────────
- * │ @file           Login.js
- * │ @path          client/src/pages/Login.js
+ * │ @file           Login.jsx
+ * │ @path          client/src/pages/Login.jsx
  * │ @description   Login implementation
  * │ @version       1.0.0
  * │

@@ -2,8 +2,8 @@
  * ┌────────────────────────────────────────────────────────────────────────────
  * │ @author                    Christophe Vandevoir
  * ├────────────────────────────────────────────────────────────────────────────
- * │ @file           StudentProfile.js
- * │ @path          client/src/pages/StudentProfile.js
+ * │ @file           StudentProfile.jsx
+ * │ @path          client/src/pages/StudentProfile.jsx
  * │ @description   StudentProfile implementation
  * │ @version       1.0.0
  * │

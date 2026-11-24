@@ -16,19 +16,18 @@
 
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const { readSessionToken } = require('./session');
 
 // Middleware to verify JWT token. The user is read from the database on each
 // request: a deleted account is refused, the role is the current one, and
 // tokens issued before the last password change or reset (older
 // sessionVersion) are refused.
 exports.authenticateJWT = async (req, res, next) => {
-    const authHeader = req.headers.authorization;
+    const token = readSessionToken(req);
 
-    if (!authHeader) {
+    if (!token) {
         return res.status(401).json({ message: 'Unauthorized access. Missing token.' });
     }
-
-    const token = authHeader.split(' ')[1];
 
     let payload;
     try {

@@ -97,8 +97,10 @@ kubectl apply -f production/ingress.yaml
 ### Application Settings
 - **Replicas**: 1 (the quest scheduler runs in the server process; more replicas would assign quests several times)
 - **Resources**: 256Mi-512Mi RAM, 100m-300m CPU
-- **Health Checks**: Liveness, readiness, and startup probes
-- **Port**: 80 (nginx frontend) + 3001 (Node.js backend)
+- **Health Checks**: liveness and startup on `/api/health/live` (nginx and Node answer), readiness on `/api/health` (the database answers too): a database outage takes the pod out of the routing without restarting it
+- **Port**: 8080 (nginx, serves the client and proxies `/api` to Node on 3001); the Service keeps port 80
+- **User**: non-root (uid 1000), no privilege escalation, all capabilities dropped, seccomp `RuntimeDefault`
+- **Runtime**: Node.js 24
 
 ### Database Settings
 - **MySQL**: 8.0.35

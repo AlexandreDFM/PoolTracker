@@ -2,8 +2,8 @@
  * ┌────────────────────────────────────────────────────────────────────────────
  * │ @author                    Christophe Vandevoir
  * ├────────────────────────────────────────────────────────────────────────────
- * │ @file           Dashboard.js
- * │ @path          client/src/pages/Dashboard.js
+ * │ @file           Dashboard.jsx
+ * │ @path          client/src/pages/Dashboard.jsx
  * │ @description   Dashboard implementation
  * │ @version       1.0.0
  * │

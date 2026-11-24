@@ -2,8 +2,8 @@
  * ┌────────────────────────────────────────────────────────────────────────────
  * │ @author                    Christophe Vandevoir
  * ├────────────────────────────────────────────────────────────────────────────
- * │ @file           HomePage.js
- * │ @path          client/src/pages/HomePage.js
+ * │ @file           HomePage.jsx
+ * │ @path          client/src/pages/HomePage.jsx
  * │ @description   HomePage implementation
  * │ @version       1.0.0
  * │

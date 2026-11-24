@@ -6,8 +6,8 @@ Pool Tracker Client is the frontend application for the Pool Tracker system, des
 
 ## Technologies
 
-- React 18
-- React Router v6
+- React 18, built with Vite
+- React Router v7
 - Axios for API communication
 - React Toastify for notifications
 - CSS for styling (custom components)
@@ -35,15 +35,17 @@ client/
 │   ├── services/        # API services
 │   ├── App.css          # Global styles
 │   ├── App.jsx          # Main application component
-│   ├── Routes.js        # Application routes
+│   ├── Routes.jsx       # Application routes
 │   └── index.jsx        # Entry point
+├── index.html           # Page template (Vite entry)
+├── vite.config.js       # Dev server, API proxy and build settings
 ├── package.json         # Dependencies and scripts
 └── README.md            # Documentation
 ```
 
 ## Installation
 
-1. Make sure you have Node.js (v14+) installed
+1. Make sure you have Node.js 24 (at least 20.19, required by Vite) installed
 2. Clone the repository
 3. Navigate to the client directory:
    ```
@@ -60,7 +62,10 @@ client/
 ```
 npm start
 ```
-The application will be available at http://localhost:3000 and will proxy API requests to http://localhost:3001.
+The Vite dev server runs at http://localhost:3000 and proxies `/api` to the API. In `docker-compose.dev.yml` the API is the `server` container (the default); outside Docker:
+```
+API_PROXY_TARGET=http://localhost:3001 npm start
+```
 
 ### Production Build
 ```
@@ -89,16 +94,9 @@ This command creates a production-ready build in the `build` directory.
 
 ## Configuration
 
-The application is configured to connect to the backend API using a proxy defined in `package.json`:
-
-```json
-"proxy": "http://localhost:3001"
-```
-
-Change this value if your backend is running on a different port or host.
+In development, `/api` is proxied by the Vite dev server (`vite.config.js`, target `API_PROXY_TARGET`, default `http://server:3001`). In production, nginx serves the build and proxies `/api` to Node in the same container.
 
 ## Notes
 
-- The application uses JWT tokens for authentication, stored in localStorage
-- All API requests are intercepted to include the authentication token
+- The session is an HttpOnly cookie set by the server: page scripts cannot read it, and the browser sends it with every `/api` request. A token stored by an older version in `localStorage` is moved into the cookie once, then removed
 - Role-based component rendering ensures users only see what they have permission to access

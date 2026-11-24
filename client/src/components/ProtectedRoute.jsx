@@ -2,9 +2,9 @@
  * ┌────────────────────────────────────────────────────────────────────────────
  * │ @author                    Christophe Vandevoir
  * ├────────────────────────────────────────────────────────────────────────────
- * │ @file           reportWebVitals.js
- * │ @path          client/src/reportWebVitals.js
- * │ @description   reportWebVitals implementation
+ * │ @file           ProtectedRoute.jsx
+ * │ @path          client/src/components/ProtectedRoute.jsx
+ * │ @description   ProtectedRoute implementation
  * │ @version       1.0.0
  * │
  * │ @email         christophe.vandevoir@epitech.eu
@@ -14,16 +14,32 @@
  * └────────────────────────────────────────────────────────────────────────────
  */
 
-const reportWebVitals = (onPerfEntry) => {
-    if (onPerfEntry && onPerfEntry instanceof Function) {
-        import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
-            getCLS(onPerfEntry);
-            getFID(onPerfEntry);
-            getFCP(onPerfEntry);
-            getLCP(onPerfEntry);
-            getTTFB(onPerfEntry);
-        });
+import { useAuth } from '../contexts/AuthContext';
+import { Navigate, useLocation } from 'react-router-dom';
+
+// Component for protected routes (requiring authentication)
+const ProtectedRoute = ({ children, adminOnly = false }) => {
+    const { isAuthenticated, isAdmin, loading } = useAuth();
+    const location = useLocation();
+
+    if (loading) {
+        return (
+            <div className="loading-container">
+            <div className="spinner"></div>
+            <p>Loading...</p>
+            </div>
+        );
     }
+
+    if (!isAuthenticated) {
+        return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+
+    if (adminOnly && !isAdmin) {
+        return <Navigate to="/" replace />;
+    }
+
+    return children;
 };
 
-export default reportWebVitals;
+export default ProtectedRoute;

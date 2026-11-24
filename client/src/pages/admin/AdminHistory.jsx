@@ -2,8 +2,8 @@
  * ┌────────────────────────────────────────────────────────────────────────────
  * │ @author                    Christophe Vandevoir
  * ├────────────────────────────────────────────────────────────────────────────
- * │ @file           AdminHistory.js
- * │ @path          client/src/pages/admin/AdminHistory.js
+ * │ @file           AdminHistory.jsx
+ * │ @path          client/src/pages/admin/AdminHistory.jsx
  * │ @description   Admin history page for points transactions
  * │ @version       1.0.0
  * │

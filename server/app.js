@@ -19,7 +19,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
-const { initDatabase } = require('./config/database');
+const { initDatabase, pool } = require('./config/database');
 
 // Load environment variables
 dotenv.config();
@@ -53,8 +53,30 @@ if (corsOrigins.length > 0) {
     app.use(cors({ origin: corsOrigins }));
 }
 
-// Middleware for logging HTTP requests
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+// Middleware for logging HTTP requests (not the probes, called every few seconds)
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', {
+    skip: (req) => req.path.startsWith('/api/health')
+}));
+
+// Health checks used by the Kubernetes probes
+// - live: the Node process answers (liveness, startup); no database, so a
+//   database outage does not make Kubernetes restart the app in a loop
+// - ready: the database answers too (readiness: the pod leaves the routing)
+app.get('/api/health/live', (req, res) => {
+    res.status(200).json({ status: 'ok' });
+});
+
+app.get('/api/health', async (req, res) => {
+    const timeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('database check timed out')), 2000).unref();
+    });
+    try {
+        await Promise.race([pool.query('SELECT 1'), timeout]);
+        res.status(200).json({ status: 'ok', database: 'ok' });
+    } catch (error) {
+        res.status(503).json({ status: 'error', database: 'unreachable' });
+    }
+});
 
 // Initialize the database
 initDatabase().then(() => {

@@ -2,8 +2,8 @@
  * ┌────────────────────────────────────────────────────────────────────────────
  * │ @author                    Christophe Vandevoir
  * ├────────────────────────────────────────────────────────────────────────────
- * │ @file          Routes.js
- * │ @path          client/src/Routes.js
+ * │ @file          Routes.jsx
+ * │ @path          client/src/Routes.jsx
  * │ @description   Routes implementation
  * │ @version       1.0.0
  * │

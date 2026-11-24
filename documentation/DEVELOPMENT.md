@@ -2,7 +2,7 @@
 
 The development stack (`docker-compose.dev.yml`) runs the source code directly, without building images:
 
-- **Client**: React dev server with hot reload
+- **Client**: Vite dev server with hot reload (proxies `/api` to the server container)
 - **Server**: Node.js with `nodemon` (restarts on file changes)
 - **Database**: MySQL, data stored in `./db`
 - **phpMyAdmin**: database management UI
@@ -62,7 +62,7 @@ Ports come from `CLIENT_PORT`, `SERVER_PORT` and `MYSQL_PORT` in `.env`.
 | Command | `make dev-up` | `make start` |
 | Build step | None | Images are built |
 | Hot reload | Yes | No |
-| Client | React dev server | Static build served by Nginx |
+| Client | Vite dev server | Static build served by Nginx |
 | Use case | Active development | Local production test |
 
 The Kubernetes production deployment is described in [KUBERNETES-PRODUCTION-DEPLOYMENT.md](KUBERNETES-PRODUCTION-DEPLOYMENT.md).
