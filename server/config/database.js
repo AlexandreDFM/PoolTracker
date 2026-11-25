@@ -46,209 +46,69 @@ setInterval(
   5 * 60 * 1000,
 );
 
-async function initDatabase() {
-  try {
-    // Create tables if they don't exist
+// Default rows the application needs, created once. Runs under the migration
+// lock, so two pods starting together never create the admin twice.
+async function seed(connection) {
+  const { zonedNow, initialLastAssignmentDate } = require("../services/questClock");
 
-    // Users table
-    await pool.query(`
-            CREATE TABLE IF NOT EXISTS USERS (
-                id INT PRIMARY KEY AUTO_INCREMENT,
-                email VARCHAR(255) UNIQUE NOT NULL,
-                password VARCHAR(255),
-                role ENUM('ADMIN', 'APE', 'AER', 'STUDENT') NOT NULL DEFAULT 'STUDENT',
-                firstName VARCHAR(100),
-                lastName VARCHAR(100),
-                isFirstLogin BOOLEAN DEFAULT TRUE,
-                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            )
-        `);
+  const [admins] = await connection.query(
+    'SELECT id FROM USERS WHERE role = "ADMIN" LIMIT 1',
+  );
+  if (admins.length === 0) {
+    const bcrypt = require("bcryptjs");
+    const crypto = require("crypto");
+    const adminEmail = process.env.ADMIN_INITIAL_EMAIL || "admin@epitech.eu";
+    const providedPassword = process.env.ADMIN_INITIAL_PASSWORD;
+    const initialPassword =
+      providedPassword || crypto.randomBytes(18).toString("base64url");
+    const hashedPassword = await bcrypt.hash(initialPassword, 10);
 
-    // Columns added after the first release. MySQL 8.0 has no ADD COLUMN IF NOT EXISTS
-    const addColumnIfMissing = async (table, column, definition) => {
-      const [rows] = await pool.query(
-        `SELECT 1 FROM information_schema.COLUMNS
-         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
-        [table, column],
-      );
-      if (rows.length === 0) {
-        await pool.query(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
-        console.log(`\x1b[32mColumn ${table}.${column} added\x1b[0m`);
-      }
-    };
-
-    // Incremented on each password change or reset: older sessions are refused
-    await addColumnIfMissing("USERS", "sessionVersion", "INT NOT NULL DEFAULT 0");
-
-    // Teams table
-    await pool.query(`
-            CREATE TABLE IF NOT EXISTS TEAMS (
-            id INT PRIMARY KEY AUTO_INCREMENT,
-            name VARCHAR(100) UNIQUE NOT NULL,
-            description TEXT,
-            color ENUM('none', 'red', 'green', 'blue', 'yellow', 'orange', 'pink', 'violet') DEFAULT 'none',
-            createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            )
-        `);
-
-    // Points table
-    await pool.query(`
-            CREATE TABLE IF NOT EXISTS POINTS (
-                id INT PRIMARY KEY AUTO_INCREMENT,
-                userId INT NOT NULL,
-                value INT NOT NULL,
-                reason TEXT,
-                adminId INT NOT NULL,
-                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (userId) REFERENCES USERS(id) ON DELETE CASCADE,
-                FOREIGN KEY (adminId) REFERENCES USERS(id)
-            )
-        `);
-
-    // User-Teams relationship table
-    await pool.query(`
-            CREATE TABLE IF NOT EXISTS USER_TEAMS (
-                id INT PRIMARY KEY AUTO_INCREMENT,
-                userId INT NOT NULL,
-                teamId INT NOT NULL,
-                joinedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (userId) REFERENCES USERS(id) ON DELETE CASCADE,
-                FOREIGN KEY (teamId) REFERENCES TEAMS(id) ON DELETE CASCADE,
-                UNIQUE KEY user_team_unique (userId, teamId)
-            )
-        `);
-
-    // Quests table
-    await pool.query(`
-            CREATE TABLE IF NOT EXISTS QUESTS (
-                id INT PRIMARY KEY AUTO_INCREMENT,
-                name VARCHAR(255) NOT NULL,
-                description TEXT,
-                secretCode VARCHAR(100) NOT NULL,
-                points INT NOT NULL,
-                isActive BOOLEAN DEFAULT TRUE,
-                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            )
-        `);
-
-    // Daily Quests table
-    await pool.query(`
-            CREATE TABLE IF NOT EXISTS DAILY_QUESTS (
-                id INT PRIMARY KEY AUTO_INCREMENT,
-                userId INT NOT NULL,
-                questId INT NOT NULL,
-                assignedDate DATE NOT NULL,
-                isCompleted BOOLEAN DEFAULT FALSE,
-                completedAt DATETIME NULL,
-                expiresAt DATETIME NOT NULL,
-                failedAttempts INT DEFAULT 0,
-                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (userId) REFERENCES USERS(id) ON DELETE CASCADE,
-                FOREIGN KEY (questId) REFERENCES QUESTS(id) ON DELETE CASCADE,
-                UNIQUE KEY user_date_unique (userId, assignedDate)
-            )
-        `);
-
-    // Ensure existing databases get the new column when upgrading
-    try {
-      await pool.query(
-        `ALTER TABLE DAILY_QUESTS ADD COLUMN IF NOT EXISTS failedAttempts INT DEFAULT 0`,
-      );
-    } catch (e) {
-      // Some MySQL versions may not support IF NOT EXISTS in ALTER TABLE; try a safe fallback
-      try {
-        await pool.query(
-          `ALTER TABLE DAILY_QUESTS ADD COLUMN failedAttempts INT DEFAULT 0`,
-        );
-      } catch (err) {
-        // If it fails (column already exists or unsupported), ignore and continue
-      }
-    }
-
-    // Quest submissions table
-    await pool.query(`
-            CREATE TABLE IF NOT EXISTS QUEST_SUBMISSIONS (
-                id INT PRIMARY KEY AUTO_INCREMENT,
-                dailyQuestId INT NOT NULL,
-                submittedCode VARCHAR(100) NOT NULL,
-                isSuccessful BOOLEAN NOT NULL,
-                submittedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (dailyQuestId) REFERENCES DAILY_QUESTS(id) ON DELETE CASCADE
-            )
-        `);
-
-    // Quests configuration table
-    await pool.query(`
-            CREATE TABLE IF NOT EXISTS QUEST_CONFIG (
-                id INT PRIMARY KEY AUTO_INCREMENT,
-                assignmentHour INT DEFAULT 10,
-                durationHours INT DEFAULT 24,
-                updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            )
-        `);
-
-    // Global settings table
-    await pool.query(`
-            CREATE TABLE IF NOT EXISTS SETTINGS (
-                id INT PRIMARY KEY AUTO_INCREMENT,
-                settingKey VARCHAR(100) UNIQUE NOT NULL,
-                settingValue TEXT,
-                updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            )
-        `);
-
-    console.log("\x1b[32mDatabase initialized successfully\x1b[0m");
-
-    // Check if there are any existing admin accounts
-    const [admins] = await pool.query(
-      'SELECT * FROM USERS WHERE role = "ADMIN" LIMIT 1',
+    await connection.query(
+      `INSERT INTO USERS (email, password, role, firstName, lastName, isFirstLogin)
+       VALUES (?, ?, 'ADMIN', 'Admin', 'Système', FALSE)`,
+      [adminEmail, hashedPassword],
     );
 
-    // If no admin accounts exist, create a default admin account
-    if (admins.length === 0) {
-      const bcrypt = require("bcryptjs");
-      const crypto = require("crypto");
-      const adminEmail = process.env.ADMIN_INITIAL_EMAIL || "admin@epitech.eu";
-      const providedPassword = process.env.ADMIN_INITIAL_PASSWORD;
-      const initialPassword =
-        providedPassword || crypto.randomBytes(18).toString("base64url");
-      const hashedPassword = await bcrypt.hash(initialPassword, 10);
-
-      await pool.query(
-        `
-                INSERT INTO USERS (email, password, role, firstName, lastName, isFirstLogin)
-                VALUES (?, ?, 'ADMIN', 'Admin', 'Système', FALSE)
-            `,
-        [adminEmail, hashedPassword],
+    if (providedPassword) {
+      console.log(
+        `\x1b[32mDefault admin account created (${adminEmail}) with ADMIN_INITIAL_PASSWORD\x1b[0m`,
       );
-
-      if (providedPassword) {
-        console.log(
-          `\x1b[32mDefault admin account created (${adminEmail}) with ADMIN_INITIAL_PASSWORD\x1b[0m`,
-        );
-      } else {
-        // Printed once, on first start with an empty database only
-        console.log(
-          `\x1b[33mDefault admin account created: ${adminEmail} / ${initialPassword} (change it after first login)\x1b[0m`,
-        );
-      }
+    } else {
+      // Printed once, on first start with an empty database only
+      console.log(
+        `\x1b[33mDefault admin account created: ${adminEmail} / ${initialPassword} (change it after first login)\x1b[0m`,
+      );
     }
+  }
 
-    // Initialize quest configuration if it doesn't exist
-    const [config] = await pool.query("SELECT * FROM QUEST_CONFIG LIMIT 1");
+  const [configs] = await connection.query(
+    "SELECT id, assignmentHour, lastAssignmentDate FROM QUEST_CONFIG LIMIT 1",
+  );
+  if (configs.length === 0) {
+    await connection.query(
+      "INSERT INTO QUEST_CONFIG (assignmentHour, durationHours) VALUES (10, 24)",
+    );
+    console.log("\x1b[32mDefault quest configuration created\x1b[0m");
+  }
 
-    // If no configuration exists, create a default one
-    if (config.length === 0) {
-      await pool.query(`
-                INSERT INTO QUEST_CONFIG (assignmentHour, durationHours)
-                SELECT 10, 24
-                WHERE NOT EXISTS (SELECT 1 FROM QUEST_CONFIG)
-            `);
-      console.log("\x1b[32mDefault quest configuration created\x1b[0m");
-    }
+  // Never assign on start for an hour that has already passed today
+  const [[config]] = await connection.query(
+    "SELECT id, assignmentHour, lastAssignmentDate FROM QUEST_CONFIG LIMIT 1",
+  );
+  if (!config.lastAssignmentDate) {
+    await connection.query(
+      "UPDATE QUEST_CONFIG SET lastAssignmentDate = ? WHERE id = ?",
+      [initialLastAssignmentDate(config.assignmentHour, zonedNow()), config.id],
+    );
+  }
+}
+
+// Schema migrations (server/migrations), then the default rows
+async function initDatabase() {
+  try {
+    const { runMigrations } = require("./migrate");
+    await runMigrations({ seed });
+    console.log("\x1b[32mDatabase initialized successfully\x1b[0m");
   } catch (error) {
     console.error("\x1b[31mError initializing database:\x1b[0m", error);
     throw error;
