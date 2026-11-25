@@ -15,6 +15,28 @@ PoolTracker is a full-stack web application that allows administrators, pedagogi
 - **Performance Dashboard**: View team rankings and student performances
 - **Student Profiles**: Individual performance tracking and point history
 
+## Screenshots
+
+Demo data (fictitious teams and students).
+
+| Team rankings | Team details |
+|---|---|
+| ![Team rankings](documentation/screenshots/home.png) | ![Team details](documentation/screenshots/team.png) |
+
+| Points management | Points management, dark mode |
+|---|---|
+| ![Points management](documentation/screenshots/admin-points.png) | ![Points management in dark mode](documentation/screenshots/admin-points-dark.png) |
+
+| Quest management | Student daily quest |
+|---|---|
+| ![Quest management](documentation/screenshots/admin-quests.png) | ![Student daily quest](documentation/screenshots/student-quests.png) |
+
+| Student profile | Login |
+|---|---|
+| ![Student profile and points history](documentation/screenshots/student-profile.png) | ![Login](documentation/screenshots/login.png) |
+
+<p align="center"><img src="documentation/screenshots/mobile-home.png" alt="Team rankings on a phone" width="260"></p>
+
 ## Technology Stack
 
 - **Frontend**: React, React Router, Axios, CSS
@@ -163,16 +185,14 @@ For complete database management documentation, see [documentation/DB-MANAGEMENT
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+The public repository [AlexandreDFM/PoolTracker](https://github.com/AlexandreDFM/PoolTracker) is a read-only archive of this project: issues and pull requests are not accepted there.
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
+## Credits
 
-- Epitech for inspiring this project
-- All contributors who have helped improve this system
+- Created by [@ItsKarmaOff](https://github.com/ItsKarmaOff) and [@toro-nicolas](https://github.com/toro-nicolas) (2025).
+- Taken over, deployed, fixed and maintained by [@AlexandreDFM](https://github.com/AlexandreDFM).
+- Thanks to [@moustiIIon](https://github.com/moustiIIon) for the June 2026 renewal: debugging, new ideas and using the platform at the time.
