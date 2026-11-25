@@ -163,6 +163,20 @@ HTTP:
 - CORS is off: the client is served from the same origin. Set `CORS_ORIGIN` (comma-separated origins) only if another origin must call the API.
 - `trust proxy` covers loopback and private addresses (nginx in the pod, Traefik), so `req.ip` is the client address.
 
+## Database schema
+
+The schema is versioned in `migrations/` (numbered SQL files). At startup the server applies the files not yet recorded in `schema_migrations`, then creates the default rows (first admin, quest configuration), all under a MySQL named lock so that several instances can start together. To change the schema, add the next numbered file; never edit one already applied.
+
+## Quest schedule
+
+Daily quests are assigned once the configured hour has passed (Europe/Paris, `QUEST_TIME_ZONE` to change it) and today's assignment is not recorded yet in `QUEST_CONFIG.lastAssignmentDate`. The assignment runs under a MySQL named lock: exactly once a day, whatever the number of instances or restarts.
+
+## Tests
+
+```bash
+npm test   # unit tests; API tests too when BASE_URL and the initial admin are set (the CI does)
+```
+
 ## First Start
 
 On first startup, a default admin account is created:

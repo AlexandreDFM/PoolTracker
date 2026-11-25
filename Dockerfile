@@ -37,24 +37,23 @@ COPY --from=backend-build /app/server ./server
 RUN rm -f /etc/nginx/conf.d/default.conf /etc/nginx/http.d/default.conf
 COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
 COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
-COPY docker/start.sh /app/start.sh
 
-# Everything runs as the unprivileged "node" user (uid 1000) of the base image:
-# nginx listens on 8080 and writes its pid and temp files under /tmp
-RUN chmod +x /app/start.sh && \
-    mkdir -p /var/log/nginx /var/lib/nginx && \
+# One image, two processes run as two containers of the same pod (or two
+# Compose services sharing a network namespace):
+#   api: node server.js (the default command)
+#   web: nginx -e stderr -g 'daemon off;' (static client, /api proxied to 127.0.0.1:3001)
+# Both run as the unprivileged "node" user (uid 1000); nginx listens on 8080
+# and writes only under /tmp, so the root filesystem can be read-only.
+RUN mkdir -p /var/log/nginx /var/lib/nginx && \
     chown -R node:node /var/log/nginx /var/lib/nginx
-# The root filesystem can be mounted read-only: only /tmp must be writable
 
 USER node
+WORKDIR /app/server
 
 ENV NODE_ENV=production
 ENV PORT=3001
 
 # HTTP only: TLS ends at the Kubernetes ingress (Traefik)
-EXPOSE 8080
+EXPOSE 8080 3001
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD curl -fs http://localhost:8080/api/health/live || exit 1
-
-CMD ["/app/start.sh"]
+CMD ["node", "server.js"]

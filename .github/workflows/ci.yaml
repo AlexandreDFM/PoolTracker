@@ -27,7 +27,7 @@ jobs:
       - run: npm run build
 
   server:
-    name: Server (start, health, login)
+    name: Server (start, API tests)
     runs-on: ubuntu-latest
     services:
       mysql:
@@ -80,3 +80,7 @@ jobs:
           curl -fsS -o /dev/null -b "$RUNNER_TEMP/cookies" http://127.0.0.1:3001/api/auth/profile \
             || { echo "::error::the session cookie does not open the profile"; exit 1; }
           echo "Server checks passed"
+      - name: API tests
+        env:
+          BASE_URL: http://127.0.0.1:3001
+        run: npm test

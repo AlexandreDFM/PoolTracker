@@ -13,6 +13,10 @@ resources:
   - ../base
   - ingress.yaml
   - db-backup.yaml
+# Two web pods in production: a pod restart no longer interrupts the site
+replicas:
+  - name: pool-tracker-web
+    count: 2
 images:
   - name: ghcr.io/epitech-nice/pool-tracker
     newTag: latest
