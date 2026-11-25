@@ -62,7 +62,7 @@ Ports come from `CLIENT_PORT`, `SERVER_PORT` and `MYSQL_PORT` in `.env`.
 | Command | `make dev-up` | `make start` |
 | Build step | None | Images are built |
 | Hot reload | Yes | No |
-| Client | Vite dev server | Static build served by Nginx |
+| Client | Vite dev server | Static build served by nginx (same image as Kubernetes, `api` and `web` services) |
 | Use case | Active development | Local production test |
 
 The Kubernetes deployment (production and staging) is described in [DEPLOYMENT.md](DEPLOYMENT.md).
