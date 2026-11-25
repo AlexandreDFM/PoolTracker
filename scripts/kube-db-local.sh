@@ -19,7 +19,8 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 # ── Configuration ────────────────────────────────────────────────────────────
-SSH_HOST="${POOLTRACKER_SSH_HOST:-alexandredfm}"
+# SSH host of the VPS: an alias of ~/.ssh/config or user@host
+SSH_HOST="${POOLTRACKER_SSH_HOST:-}"
 REMOTE_SCRIPT="\$HOME/kube-db-manager.sh"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -36,6 +37,10 @@ err()     { echo -e "${RED}[ERROR]${NC}   $*"; }
 header()  { echo -e "\n${PURPLE}═══════════════════════════════════════════════${NC}"; echo -e "${PURPLE}  $*${NC}"; echo -e "${PURPLE}═══════════════════════════════════════════════${NC}"; }
 
 remote() {
+    if [ -z "$SSH_HOST" ]; then
+        err "Set POOLTRACKER_SSH_HOST (an alias of ~/.ssh/config or user@host)"
+        exit 1
+    fi
     ssh "$SSH_HOST" "$REMOTE_SCRIPT $*"
 }
 

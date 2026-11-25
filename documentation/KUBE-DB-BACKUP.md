@@ -47,7 +47,7 @@ chmod +x kube-db-local.sh
 ### Directly on the VPS
 
 ```bash
-ssh alexandredfm
+ssh <ssh-host>
 
 # Backup
 ~/kube-db-manager.sh backup
@@ -169,7 +169,7 @@ backups/
 
 ### SSH host
 
-By default the local wrapper connects to the SSH host alias `alexandredfm`. Override with:
+The local wrapper connects to the SSH host given by `POOLTRACKER_SSH_HOST` (an alias of `~/.ssh/config` or `user@host`):
 
 ```bash
 POOLTRACKER_SSH_HOST=myuser@my-vps.com ./scripts/kube-db-local.sh backup local
@@ -178,7 +178,7 @@ POOLTRACKER_SSH_HOST=myuser@my-vps.com ./scripts/kube-db-local.sh backup local
 Or set it in your shell profile:
 
 ```bash
-export POOLTRACKER_SSH_HOST=alexandredfm
+export POOLTRACKER_SSH_HOST=<ssh-host>
 ```
 
 ### VPS script location
@@ -186,7 +186,7 @@ export POOLTRACKER_SSH_HOST=alexandredfm
 The remote script is expected at `$HOME/kube-db-manager.sh` on the VPS. To update it:
 
 ```bash
-scp scripts/kube-db-manager.sh alexandredfm:~/kube-db-manager.sh
+scp scripts/kube-db-manager.sh <ssh-host>:~/kube-db-manager.sh
 ```
 
 ### Kubernetes configuration
@@ -232,7 +232,7 @@ Daily backups are made in the cluster by the CronJob `pool-tracker-db-backup` (p
 
 ### Compare what changed between two backups
 ```bash
-ssh alexandredfm "~/kube-db-manager.sh diff pool_tracker_prod_20260308_204926.sql pool_tracker_prod_20260310_120000.sql"
+ssh <ssh-host> "~/kube-db-manager.sh diff pool_tracker_prod_20260308_204926.sql pool_tracker_prod_20260310_120000.sql"
 ```
 
 ### Transfer a backup between VPS and local
@@ -249,10 +249,10 @@ ssh alexandredfm "~/kube-db-manager.sh diff pool_tracker_prod_20260308_204926.sq
 ### "No running DB pod found"
 ```bash
 # Check pod status
-ssh alexandredfm "sudo kubectl get pods -n pool-tracker-prod"
+ssh <ssh-host> "sudo kubectl get pods -n pool-tracker-prod"
 
 # If the pod is CrashLooping, check logs
-ssh alexandredfm "sudo kubectl logs -n pool-tracker-prod <pod-name>"
+ssh <ssh-host> "sudo kubectl logs -n pool-tracker-prod <pod-name>"
 ```
 
 ### "Permission denied" on kubectl
@@ -261,10 +261,10 @@ The script uses `sudo kubectl` by default (required for k3s). If your VPS has ku
 ### SSH connection issues
 ```bash
 # Verify SSH access
-ssh alexandredfm "echo ok"
+ssh <ssh-host> "echo ok"
 
 # Check your SSH config (~/.ssh/config)
-Host alexandredfm
+Host <ssh-host>
     HostName <your-vps-ip>
     User ubuntu
     IdentityFile ~/.ssh/id_ed25519
@@ -273,8 +273,8 @@ Host alexandredfm
 ### Backup file is empty or truncated
 ```bash
 # Verify the DB is accessible
-ssh alexandredfm "~/kube-db-manager.sh status"
+ssh <ssh-host> "~/kube-db-manager.sh status"
 
 # Try a manual dump to check for errors
-ssh alexandredfm "sudo kubectl exec <pod> -n pool-tracker-prod -- /usr/bin/mysqldump --version"
+ssh <ssh-host> "sudo kubectl exec <pod> -n pool-tracker-prod -- /usr/bin/mysqldump --version"
 ```
