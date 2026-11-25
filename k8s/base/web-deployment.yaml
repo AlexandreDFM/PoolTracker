@@ -1,6 +1,9 @@
-# PoolTracker web pod: nginx serves the client and proxies /api to Node.
-# One replica: the quest scheduler runs inside the Node process, a second
-# replica would assign the daily quests twice.
+# PoolTracker web pod, one image and two containers:
+# - web: nginx serves the client build and proxies /api to 127.0.0.1:3001
+# - api: Node (Express), schema migrations at start, quest scheduler
+# Each container has its own probes, so Kubernetes restarts whichever dies.
+# Several replicas are safe: migrations and the daily quest assignment run
+# under MySQL locks (login delays and the quest PDF cache stay per pod).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -36,7 +39,7 @@ spec:
         runAsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
-      # The server creates its schema at startup and exits if MySQL does not
+      # The server runs its migrations at startup and exits if MySQL does not
       # answer: wait for the database first
       initContainers:
         - name: wait-for-database
@@ -69,6 +72,51 @@ spec:
           image: ghcr.io/epitech-nice/pool-tracker:latest   # tag replaced by the commit SHA on deploy
           # Tags are commit SHAs (immutable): no need to pull again
           imagePullPolicy: IfNotPresent
+          command: ["nginx", "-e", "stderr", "-g", "daemon off;"]
+          # Read-only image: nginx writes only its pid and temp files under
+          # /tmp (large proxied responses such as the quest PDF included); its
+          # logs go to the container output
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: web-tmp
+              mountPath: /tmp
+          # Leave time for the ingress to stop sending requests before nginx
+          # stops (no cut connection during a rollout)
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]
+          ports:
+            - name: http
+              containerPort: 8080
+          # nginx itself; the API and the database are checked by the api container
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+        - name: api
+          image: ghcr.io/epitech-nice/pool-tracker:latest   # tag replaced by the commit SHA on deploy
+          imagePullPolicy: IfNotPresent
           envFrom:
             - configMapRef:
                 name: pool-tracker-config        # constants, in git
@@ -77,58 +125,57 @@ spec:
                 optional: true
             - secretRef:
                 name: pool-tracker-app           # GitHub Secrets
-          # Read-only image: nginx writes only its pid and temp files (/tmp,
-          # large proxied responses such as the quest PDF included); its logs
-          # go to the container output
           securityContext:
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
           volumeMounts:
-            - name: tmp
+            - name: api-tmp
               mountPath: /tmp
-          # Leave time for the ingress to stop sending requests before nginx
-          # and Node stop (no cut connection during a rollout)
+          # nginx stops sending /api requests first (see the web container)
           lifecycle:
             preStop:
               exec:
                 command: ["sleep", "5"]
           ports:
-            - name: http
-              containerPort: 8080
-          # Liveness and startup: nginx and Node answer (no database, so a
-          # database outage does not restart the app in a loop).
+            - name: api
+              containerPort: 3001
+          # Startup and liveness: Node answers (no database, so a database
+          # outage does not restart the app in a loop).
           # Readiness: the database answers too.
           startupProbe:
             httpGet:
               path: /api/health/live
-              port: http
+              port: api
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 30
           readinessProbe:
             httpGet:
               path: /api/health
-              port: http
+              port: api
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
           livenessProbe:
             httpGet:
               path: /api/health/live
-              port: http
+              port: api
             periodSeconds: 30
             timeoutSeconds: 10
             failureThreshold: 3
           resources:
             requests:
               cpu: 100m
-              memory: 256Mi
+              memory: 192Mi
             limits:
               cpu: 300m
-              memory: 512Mi
+              memory: 384Mi
       volumes:
-        - name: tmp
+        - name: web-tmp
           emptyDir:
             sizeLimit: 256Mi
+        - name: api-tmp
+          emptyDir:
+            sizeLimit: 64Mi

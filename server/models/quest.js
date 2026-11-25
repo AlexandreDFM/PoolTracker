@@ -15,6 +15,7 @@
  */
 
 const { pool } = require('../config/database');
+const { questDate } = require('../services/questClock');
 
 class Quest {
     // Find a quest by ID
@@ -114,8 +115,8 @@ class Quest {
 
                 if (quests.length === 0) {
                     console.log('No active quests available for assignment');
+                    // The connection is released by the finally block below
                     await connection.rollback();
-                    connection.release();
                     return;
                 }
 
@@ -125,7 +126,8 @@ class Quest {
                 );
                 const durationHours = config[0]?.durationHours || 24;
 
-                const today = new Date().toISOString().split('T')[0];
+                // Day in the quest time zone, as the scheduler and the students see it
+                const today = questDate();
                 const expiresAt = new Date();
                 expiresAt.setHours(expiresAt.getHours() + durationHours);
 
@@ -165,14 +167,14 @@ class Quest {
     // Get daily quest for a student
     static async getDailyQuestForStudent(userId, date = null) {
         try {
-            const questDate = date || new Date().toISOString().split('T')[0];
+            const day = date || questDate();
 
             const [rows] = await pool.query(`
                 SELECT dq.*, q.name, q.description, q.points
                 FROM DAILY_QUESTS dq
                 JOIN QUESTS q ON dq.questId = q.id
                 WHERE dq.userId = ? AND dq.assignedDate = ?
-            `, [userId, questDate]);
+            `, [userId, day]);
 
             return rows[0];
         } catch (error) {
@@ -297,7 +299,7 @@ class Quest {
             const [activeQuests] = await pool.query('SELECT COUNT(*) as count FROM QUESTS WHERE isActive = TRUE');
 
             // Today's assignments
-            const today = new Date().toISOString().split('T')[0];
+            const today = questDate();
             const [todayAssignments] = await pool.query(
                 'SELECT COUNT(*) as count FROM DAILY_QUESTS WHERE assignedDate = ?',
                 [today]

@@ -10,8 +10,9 @@ PoolTracker runs on the k3s cluster of the VPS, behind Traefik, with TLS from ce
 ```
 browser ─HTTPS─> Traefik (Ingress pool-tracker-web, middlewares)
                    └─> Service pool-tracker-web:80
-                         └─> pod pool-tracker-web :8080
-                               nginx: client build, /api -> Node :3001
+                         └─> pods pool-tracker-web (2 in production), each with two containers:
+                               web :8080  nginx: client build, /api -> 127.0.0.1:3001
+                               api :3001  Node: API, migrations at start, quest scheduler
                                                       └─> Service pool-tracker-db:3306
                                                             └─> pod pool-tracker-db (MySQL 8.4)
                                                                   └─> PVC pool-tracker-db-data
@@ -28,10 +29,11 @@ CronJob pool-tracker-db-backup (production, 03:00 UTC) ──> PVC pool-tracker-
 | `k8s/base/` | Manifests shared by both environments: constants ConfigMap, MySQL (PVC, Deployment, Service), web Deployment and Service, Traefik middlewares |
 | `k8s/production/` | Production overlay: Ingress (+ `www` redirect), backup CronJob and its volume |
 | `k8s/staging/` | Staging overlay: Ingress, database name `pool_tracker_staging`, 2 Gi volume |
-| `.github/workflows/ci.yaml` | Pull requests and before each build: client lint and build, server start against MySQL, `/api/health`, login cookie |
+| `.github/workflows/ci.yaml` | Pull requests and before each build: client lint and build, server started against MySQL, API tests (`server/test`) |
 | `.github/workflows/build.yaml` | Push on `main` or `develop`: checks, image `ghcr.io/epitech-nice/pool-tracker:<sha>` (`latest` for `main` only), then deploy |
 | `.github/workflows/deploy.yaml` | Reusable deploy (one call per environment) |
-| `Dockerfile` | Image: Vite build of the client, Node 24 server, nginx; runs as uid 1000 |
+| `Dockerfile` | One image (Vite build of the client, Node 24 server, nginx) run as two containers; uid 1000, read-only root filesystem |
+| `server/migrations/` | Numbered SQL migrations, applied at startup (see below) |
 
 Kubernetes objects carry `app.kubernetes.io/name=pool-tracker`, `app.kubernetes.io/component` (`web`, `database`, `backup`), `app.kubernetes.io/part-of=pool-tracker` and `app.kubernetes.io/managed-by=kustomize`.
 
@@ -105,19 +107,31 @@ Deploy steps: connect with `<prefix>_KUBE_CONFIG`, check the account's rights, r
 
 ### Probes
 
-- Startup and liveness: `/api/health/live` (nginx and Node answer, no database: a database outage does not restart the app).
-- Readiness: `/api/health` (`SELECT 1`): during a database outage the pod leaves the routing.
+- `web` container: readiness and liveness on `/health` (nginx itself).
+- `api` container: startup and liveness on `/api/health/live` (Node answers; no database, so a database outage does not restart the app), readiness on `/api/health` (`SELECT 1`): during a database outage the pod leaves the routing.
 
-The web Deployment runs **one replica**: the daily quest scheduler runs inside the Node process.
+Each container is restarted on its own if it dies.
+
+### Several replicas
+
+Production runs **two web pods** (`replicas` in `k8s/production/kustomization.yaml`), staging one. This is safe because:
+- schema migrations and the default rows run under a MySQL named lock: one pod migrates, the others wait;
+- the daily quest assignment runs under another lock and is recorded in `QUEST_CONFIG.lastAssignmentDate`, so it happens once a day whatever the number of pods or restarts.
+
+Per pod: the login delay counters and the quest PDF cache.
+
+### Schema migrations
+
+`server/migrations/NNN_name.sql` files are applied in order at startup and recorded in `schema_migrations` (version, checksum). To change the schema, add a new file with the next number; never edit an applied one (a changed checksum is reported in the logs). `001_baseline.sql` is the schema of the application before migrations; `002` brings older databases to it.
 
 ## Operations
 
 ```bash
 N=pool-tracker-prod   # or pool-tracker-staging
 kubectl -n $N get deployments,pods,ingress,cronjobs,pvc
-kubectl -n $N logs -l app.kubernetes.io/component=web -f
+kubectl -n $N logs -l app.kubernetes.io/component=web -c api -f     # -c web for nginx
 kubectl -n $N logs -l app.kubernetes.io/component=database --tail=100
-kubectl -n $N exec deploy/pool-tracker-web -- wget -qO- 127.0.0.1:8080/api/health
+kubectl -n $N exec deploy/pool-tracker-web -c api -- curl -s 127.0.0.1:3001/api/health
 ```
 
 ### Rollback

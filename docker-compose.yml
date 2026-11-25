@@ -1,44 +1,58 @@
+# Production-like stack on one machine (make build && make start): the same
+# image as Kubernetes, run as two services sharing one network namespace
+# (like the two containers of the pod), plus MySQL and phpMyAdmin.
+# Development with hot reload: docker-compose.dev.yml.
 services:
-  client:
-    build:
-      context: .
-      dockerfile: ./docker/client/Dockerfile
+  api:
+    build: .
+    image: pool-tracker:local
     restart: unless-stopped
+    # web shares this service's network: its port is published here
     ports:
-      - "${CLIENT_PORT}:${CLIENT_PORT}"
-    depends_on:
-      - server
-    networks:
-      - pool-tracker-network
-
-  server:
-    build:
-      context: .
-      dockerfile: ./docker/server/Dockerfile
-    restart: unless-stopped
-    ports:
-      - "${SERVER_PORT}:${SERVER_PORT}"
+      - "${CLIENT_PORT:-3000}:8080"
+      - "${SERVER_PORT:-3001}:3001"
     environment:
-      - NODE_ENV=${NODE_ENV}
-      - HOST=${HOST}
-      - PORT=${SERVER_PORT}
-      - DB_HOST=${DB_HOST}
+      - NODE_ENV=production
+      - DB_HOST=db
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=${DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
+      - ADMIN_INITIAL_EMAIL=${ADMIN_INITIAL_EMAIL:-}
+      - ADMIN_INITIAL_PASSWORD=${ADMIN_INITIAL_PASSWORD:-}
+    read_only: true
+    tmpfs:
+      - /tmp
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://127.0.0.1:3001/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
     networks:
       - pool-tracker-network
+
+  web:
+    image: pool-tracker:local
+    pull_policy: never
+    restart: unless-stopped
+    command: ["nginx", "-e", "stderr", "-g", "daemon off;"]
+    # Same network namespace as api: nginx proxies /api to 127.0.0.1:3001
+    network_mode: "service:api"
+    read_only: true
+    tmpfs:
+      - /tmp
+    depends_on:
+      - api
 
   db:
     image: mysql:8.4.13
     restart: unless-stopped
-    platform: linux/amd64
     ports:
-      - "${MYSQL_PORT}:${MYSQL_PORT}"
+      - "${MYSQL_PORT:-3306}:3306"
     environment:
       - MYSQL_DATABASE=${MYSQL_DATABASE}
       - MYSQL_USER=${MYSQL_USER}
@@ -57,13 +71,12 @@ services:
       start_period: 30s
 
   phpmyadmin:
-    platform: linux/amd64
-    image: phpmyadmin/phpmyadmin
+    image: phpmyadmin/phpmyadmin:5.2
     ports:
       - "8080:80"
     environment:
       - PMA_ABSOLUTE_URI=${PMA_ABSOLUTE_URI}
-      - PMA_HOST=${PMA_HOST}
+      - PMA_HOST=${PMA_HOST:-db}
       - PMA_USER=${PMA_USER}
       - PMA_PASSWORD=${PMA_PASSWORD}
     depends_on:

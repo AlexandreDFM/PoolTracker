@@ -1,84 +1,28 @@
-# Docker Configuration for Pool Tracker
+# Docker
 
-This directory contains Docker configuration files to containerize all components of the Pool Tracker application.
+One image, built by the root `Dockerfile`, is used everywhere: Kubernetes (production and staging) and the local production-like stack (`docker-compose.yml`).
 
-## Directory Structure
+The image holds the Vite build of the client, the Node server and nginx, and runs as two processes:
 
-- `client/`: Contains Dockerfile and Nginx configuration for the React frontend
-- `server/`: Contains Dockerfile for the Node.js backend
+| Container (Kubernetes) / service (Compose) | Command | Port |
+|---|---|---|
+| `web` | `nginx -e stderr -g 'daemon off;'`: client build, `/api` proxied to `127.0.0.1:3001` | 8080 |
+| `api` | `node server.js` (default command): API, schema migrations at start, quest scheduler | 3001 |
 
-## Configuration Files
+Both run as the unprivileged `node` user (uid 1000) and write only under `/tmp`, so the root filesystem can be read-only. In Kubernetes they are two containers of the same pod; in Compose, `web` shares the network namespace of `api`.
 
-### Client Configuration
+## Files
 
-- `Dockerfile`: Multi-stage build that:
-  1. Uses Node.js Alpine as the build environment
-  2. Builds the React application
-  3. Uses Nginx to serve the static files
-- `nginx.conf`: Configures Nginx to:
-  - Serve the React application
-  - Proxy API requests to the backend server
-  - Proxy phpMyAdmin requests
+| Path | Content |
+|---|---|
+| `docker/nginx/nginx.conf` | nginx main config (pid and temp files under `/tmp`, logs to the container output) |
+| `docker/nginx/default.conf` | Site: security headers, SPA fallback, `/api` proxy, `/health` |
 
-### Server Configuration
-
-- `Dockerfile`: Sets up the Node.js environment for the backend API
-
-## Usage
-
-The Docker setup is managed through the main `docker-compose.yml` file in the project root.
-
-### Services
-
-- **client**: React frontend (served via Nginx)
-- **server**: Node.js Express backend API
-- **db**: MySQL database
-- **phpmyadmin**: Web interface for database management
-
-### Environment Variables
-
-All Docker services are configured via environment variables. Make sure to create a proper `.env` file in the project root based on the provided `.env.example` template.
-
-### Starting the Application
-
-From the project root:
+## Local stacks
 
 ```bash
-# Build and start all services
-make all
-
-# Start services without rebuilding
-make start
-
-# Restart all services
-make restart
-
-# Stop all services
-make stop
-
-# View logs
-make logs
+make build && make start     # docker-compose.yml: same image as production, MySQL, phpMyAdmin
+make dev-up                  # docker-compose.dev.yml: Vite and node --watch with hot reload
 ```
 
-### Cleaning Up
-
-To remove all containers, volumes, and images:
-
-```bash
-make clean
-```
-
-## Ports
-
-- Frontend: Defined in `.env` as `CLIENT_PORT`
-- Backend API: Defined in `.env` as `SERVER_PORT`
-- MySQL: Defined in `.env` as `MYSQL_PORT` 
-- phpMyAdmin: 8080
-
-## Data Persistence
-
-The MySQL data is persisted in a Docker volume at `./db/`.
-
-## Network
-
-All services are connected to a custom `pool-tracker-network` bridge network for internal communication.
+Both read `.env` (see `.env.example`).
