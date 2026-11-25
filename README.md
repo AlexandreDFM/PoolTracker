@@ -15,6 +15,28 @@ PoolTracker is a full-stack web application that allows administrators, pedagogi
 - **Performance Dashboard**: View team rankings and student performances
 - **Student Profiles**: Individual performance tracking and point history
 
+## Screenshots
+
+Demo data (fictitious teams and students).
+
+| Team rankings | Team details |
+|---|---|
+| ![Team rankings](documentation/screenshots/home.png) | ![Team details](documentation/screenshots/team.png) |
+
+| Points management | Points management, dark mode |
+|---|---|
+| ![Points management](documentation/screenshots/admin-points.png) | ![Points management in dark mode](documentation/screenshots/admin-points-dark.png) |
+
+| Quest management | Student daily quest |
+|---|---|
+| ![Quest management](documentation/screenshots/admin-quests.png) | ![Student daily quest](documentation/screenshots/student-quests.png) |
+
+| Student profile | Login |
+|---|---|
+| ![Student profile and points history](documentation/screenshots/student-profile.png) | ![Login](documentation/screenshots/login.png) |
+
+<p align="center"><img src="documentation/screenshots/mobile-home.png" alt="Team rankings on a phone" width="260"></p>
+
 ## Technology Stack
 
 - **Frontend**: React, React Router, Axios, CSS
