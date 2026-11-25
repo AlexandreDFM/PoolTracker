@@ -9,7 +9,7 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-    traefik.ingress.kubernetes.io/router.middlewares: pool-tracker-staging-redirect-https@kubernetescrd,pool-tracker-staging-security-headers@kubernetescrd,pool-tracker-staging-rate-limit@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: pool-tracker-preprod-redirect-https@kubernetescrd,pool-tracker-preprod-security-headers@kubernetescrd,pool-tracker-preprod-rate-limit@kubernetescrd
 spec:
   ingressClassName: traefik
   tls:
