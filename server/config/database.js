@@ -17,7 +17,7 @@
 const mysql = require("mysql2/promise");
 const dotenv = require("dotenv");
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 // Database connection configuration
 const pool = mysql.createPool({

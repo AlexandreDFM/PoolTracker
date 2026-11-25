@@ -16,9 +16,22 @@
 
 import './StudentQuests.css';
 import { toast } from 'react-toastify';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { questService } from '../services/api';
 import useRandColor from '../hook/useRandColor';
+
+// Time left before the quest expires, or null when there is nothing to count
+const computeTimeRemaining = (quest) => {
+    if (!quest || quest.isCompleted) return null;
+
+    const diff = new Date(quest.expiresAt) - new Date();
+    if (diff <= 0) return 'Expired';
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    return `${hours}h ${minutes}m ${seconds}s`;
+};
 
 const StudentQuests = () => {
     const [color] = useRandColor();
@@ -53,28 +66,12 @@ const StudentQuests = () => {
         };
     }, []);
 
-    useEffect(() => {
-        fetchDailyQuest();
-    }, []);
-
-    useEffect(() => {
-        let interval = null;
-        if (dailyQuest && !dailyQuest.isCompleted) {
-            interval = setInterval(() => {
-                updateTimeRemaining();
-            }, 1000);
-        }
-        return () => {
-            if (interval) clearInterval(interval);
-        };
-    }, [dailyQuest]);
-
-    const fetchDailyQuest = async () => {
+    const fetchDailyQuest = useCallback(async () => {
         try {
             setLoading(true);
             const questData = await questService.getDailyQuest();
             setDailyQuest(questData);
-            updateTimeRemaining(questData);
+            setTimeRemaining(computeTimeRemaining(questData));
         } catch (error) {
             if (error.response?.status === 404) {
                 setDailyQuest(null);
@@ -85,28 +82,23 @@ const StudentQuests = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    const updateTimeRemaining = (quest = dailyQuest) => {
-        if (!quest || quest.isCompleted) {
-            setTimeRemaining(null);
-            return;
+    useEffect(() => {
+        fetchDailyQuest();
+    }, [fetchDailyQuest]);
+
+    useEffect(() => {
+        let interval = null;
+        if (dailyQuest && !dailyQuest.isCompleted) {
+            interval = setInterval(() => {
+                setTimeRemaining(computeTimeRemaining(dailyQuest));
+            }, 1000);
         }
-
-        const now = new Date();
-        const expiresAt = new Date(quest.expiresAt);
-        const diff = expiresAt - now;
-
-        if (diff <= 0) {
-            setTimeRemaining('Expired');
-        } else {
-            const hours = Math.floor(diff / (1000 * 60 * 60));
-            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-            setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`);
-        }
-    };
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [dailyQuest]);
 
     const handleSubmitCode = async (e) => {
         e.preventDefault();
@@ -138,7 +130,7 @@ const StudentQuests = () => {
             setCode('');
             try {
                 await fetchDailyQuest();
-            } catch (_) {
+            } catch {
                 // ignore
             }
         } finally {
