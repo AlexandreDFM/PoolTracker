@@ -159,7 +159,7 @@ For complete database management documentation, see [documentation/DB-MANAGEMENT
 - [Docker Documentation](docker/README.md)
 - [Development Mode](documentation/DEVELOPMENT.md)
 - [Database Management](documentation/DB-MANAGEMENT.md)
-- [Deployment (Kubernetes, GitHub Actions, staging)](documentation/DEPLOYMENT.md)
+- [Deployment (Kubernetes, GitHub Actions, preprod)](documentation/DEPLOYMENT.md)
 
 ## Contributing
 

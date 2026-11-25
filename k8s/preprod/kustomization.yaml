@@ -1,9 +1,9 @@
-# Staging (pool.ppd.nice-tek.eu), deployed from the develop branch:
-# kubectl apply -k k8s/staging. Same manifests as production, smaller
+# Preprod (pool.ppd.nice-tek.eu), deployed from the develop branch:
+# kubectl apply -k k8s/preprod. Same manifests as production, smaller
 # volume, own database name, no backup job.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: pool-tracker-staging
+namespace: pool-tracker-preprod
 labels:
   - pairs:
       app.kubernetes.io/part-of: pool-tracker
@@ -20,7 +20,7 @@ patches:
     patch: |-
       - op: replace
         path: /data/DB_NAME
-        value: pool_tracker_staging
+        value: pool_tracker_preprod
   - target:
       kind: PersistentVolumeClaim
       name: pool-tracker-db-data

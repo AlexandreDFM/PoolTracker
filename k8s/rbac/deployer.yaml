@@ -3,7 +3,7 @@
 # no exec, nothing cluster-wide). Applied once by a cluster admin, then:
 #   ./k8s/rbac/make-kubeconfig.sh https://<api-server>:6443
 # prints the PRD_KUBE_CONFIG repository secret.
-# Staging: deployer-staging.yaml, same Role in pool-tracker-staging.
+# Preprod: deployer-preprod.yaml, same Role in pool-tracker-preprod.
 apiVersion: v1
 kind: ServiceAccount
 metadata:

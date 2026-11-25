@@ -1,6 +1,6 @@
 name: Build and push the image
 
-# main deploys production, develop deploys staging. The deploy is a reusable
+# main deploys production, develop deploys preprod. The deploy is a reusable
 # workflow (workflow_call): workflow_run would only ever run main's version.
 on:
   push:
@@ -59,16 +59,16 @@ jobs:
       prefix: PRD
     secrets: inherit
 
-  deploy-staging:
-    name: Deploy staging
+  deploy-preprod:
+    name: Deploy preprod
     if: github.ref == 'refs/heads/develop'
     needs: [image]
     permissions:
       contents: read
     uses: ./.github/workflows/deploy.yaml
     with:
-      environment: staging
-      namespace: pool-tracker-staging
-      manifests: k8s/staging
+      environment: preprod
+      namespace: pool-tracker-preprod
+      manifests: k8s/preprod
       prefix: PPD
     secrets: inherit

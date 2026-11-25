@@ -16,7 +16,7 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 # ── Configuration ────────────────────────────────────────────────────────────
-# Staging: NAMESPACE=pool-tracker-staging DB_NAME=pool_tracker_staging
+# Preprod: NAMESPACE=pool-tracker-preprod DB_NAME=pool_tracker_preprod
 NAMESPACE="${NAMESPACE:-pool-tracker-prod}"
 DB_DEPLOYMENT="pool-tracker-db"
 DB_SELECTOR="app.kubernetes.io/name=pool-tracker,app.kubernetes.io/component=database"

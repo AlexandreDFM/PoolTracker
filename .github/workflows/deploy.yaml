@@ -2,7 +2,7 @@ name: Deploy to Kubernetes
 
 # Called by build.yaml once the image of the commit is pushed.
 # Secrets and Variables are repository-level and prefixed per environment:
-# PRD_ for production, PPD_ for staging (e.g. PRD_JWT_SECRET). The GitHub
+# PRD_ for production, PPD_ for preprod (e.g. PRD_JWT_SECRET). The GitHub
 # environment only records the deployments and their URL.
 # One-time setup (namespace, deploy account, cert-manager, Secrets and
 # Variables): documentation/DEPLOYMENT.md
@@ -10,7 +10,7 @@ on:
   workflow_call:
     inputs:
       environment:
-        description: GitHub environment (production or staging)
+        description: GitHub environment (production or preprod)
         required: true
         type: string
       namespace:
