@@ -9,6 +9,6 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: pool-tracker-staging
+  name: pool-tracker-preprod
   labels:
     app.kubernetes.io/part-of: pool-tracker

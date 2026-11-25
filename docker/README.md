@@ -1,6 +1,6 @@
 # Docker
 
-One image, built by the root `Dockerfile`, is used everywhere: Kubernetes (production and staging) and the local production-like stack (`docker-compose.yml`).
+One image, built by the root `Dockerfile`, is used everywhere: Kubernetes (production and preprod) and the local production-like stack (`docker-compose.yml`).
 
 The image holds the Vite build of the client, the Node server and nginx, and runs as two processes:
 

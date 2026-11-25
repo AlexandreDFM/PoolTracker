@@ -195,10 +195,10 @@ These values are configured at the top of `kube-db-manager.sh`:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `NAMESPACE` | `pool-tracker-prod` | K8s namespace (environment variable; staging: `pool-tracker-staging`) |
+| `NAMESPACE` | `pool-tracker-prod` | K8s namespace (environment variable; preprod: `pool-tracker-preprod`) |
 | `DB_SELECTOR` | `app.kubernetes.io/name=pool-tracker,app.kubernetes.io/component=database` | Labels of the MySQL pod |
 | `DB_DEPLOYMENT` | `pool-tracker-db` | Deployment name prefix, fallback for pod lookup |
-| `DB_NAME` | `pool_tracker_prod` | MySQL database name (environment variable; staging: `pool_tracker_staging`) |
+| `DB_NAME` | `pool_tracker_prod` | MySQL database name (environment variable; preprod: `pool_tracker_preprod`) |
 | `DB_USER` | `root` | MySQL user for dumps |
 | `MAX_BACKUPS` | `20` | Auto-rotate threshold |
 | `BACKUP_DIR` | `$HOME/pooltracker-backups` | VPS backup directory |

@@ -1,20 +1,20 @@
 # Account used by the GitHub deploy workflow. It can only manage the
-# resources PoolTracker uses, in the pool-tracker-staging namespace (no delete,
+# resources PoolTracker uses, in the pool-tracker-preprod namespace (no delete,
 # no exec, nothing cluster-wide). Applied once by a cluster admin, then:
-#   NAMESPACE=pool-tracker-staging ./k8s/rbac/make-kubeconfig.sh https://<api-server>:6443
+#   NAMESPACE=pool-tracker-preprod ./k8s/rbac/make-kubeconfig.sh https://<api-server>:6443
 # prints the PPD_KUBE_CONFIG repository secret.
 # Same Role as deployer.yaml (production).
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: github-deployer
-  namespace: pool-tracker-staging
+  namespace: pool-tracker-preprod
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: github-deployer
-  namespace: pool-tracker-staging
+  namespace: pool-tracker-preprod
 rules:
   - apiGroups: [""]
     resources: [configmaps, secrets, services, persistentvolumeclaims]
@@ -51,11 +51,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: github-deployer
-  namespace: pool-tracker-staging
+  namespace: pool-tracker-preprod
 subjects:
   - kind: ServiceAccount
     name: github-deployer
-    namespace: pool-tracker-staging
+    namespace: pool-tracker-preprod
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -66,7 +66,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: github-deployer-token
-  namespace: pool-tracker-staging
+  namespace: pool-tracker-preprod
   annotations:
     kubernetes.io/service-account.name: github-deployer
 type: kubernetes.io/service-account-token

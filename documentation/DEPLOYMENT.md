@@ -5,7 +5,7 @@ PoolTracker runs on the k3s cluster of the VPS, behind Traefik, with TLS from ce
 | Environment | URL | Branch | Namespace | Secret/Variable prefix | GitHub environment |
 |---|---|---|---|---|---|
 | Production | https://pool.nice-tek.eu (`www.` redirects to it) | `main` | `pool-tracker-prod` | `PRD_` | `production` |
-| Staging | https://pool.ppd.nice-tek.eu | `develop` | `pool-tracker-staging` | `PPD_` | `staging` |
+| Preprod | https://pool.ppd.nice-tek.eu | `develop` | `pool-tracker-preprod` | `PPD_` | `preprod` |
 
 ```
 browser ─HTTPS─> Traefik (Ingress pool-tracker-web, middlewares)
@@ -24,11 +24,11 @@ CronJob pool-tracker-db-backup (production, 03:00 UTC) ──> PVC pool-tracker-
 | Path | Content |
 |---|---|
 | `k8s/cluster/namespace.yaml` | Both namespaces (cluster admin, once) |
-| `k8s/rbac/deployer.yaml`, `deployer-staging.yaml` | Deploy account `github-deployer` per namespace (cluster admin, once) |
+| `k8s/rbac/deployer.yaml`, `deployer-preprod.yaml` | Deploy account `github-deployer` per namespace (cluster admin, once) |
 | `k8s/rbac/make-kubeconfig.sh` | Prints the `PRD_KUBE_CONFIG` / `PPD_KUBE_CONFIG` secret |
 | `k8s/base/` | Manifests shared by both environments: constants ConfigMap, MySQL (PVC, Deployment, Service), web Deployment and Service, Traefik middlewares |
 | `k8s/production/` | Production overlay: Ingress (+ `www` redirect), backup CronJob and its volume |
-| `k8s/staging/` | Staging overlay: Ingress, database name `pool_tracker_staging`, 2 Gi volume |
+| `k8s/preprod/` | Preprod overlay: Ingress, database name `pool_tracker_preprod`, 2 Gi volume |
 | `.github/workflows/ci.yaml` | Pull requests and before each build: client lint and build, server started against MySQL, API tests (`server/test`) |
 | `.github/workflows/build.yaml` | Push on `main` or `develop`: checks, image `ghcr.io/epitech-nice/pool-tracker:<sha>` (`latest` for `main` only), then deploy |
 | `.github/workflows/deploy.yaml` | Reusable deploy (one call per environment) |
@@ -43,12 +43,12 @@ On the VPS, `kubectl` is `sudo kubectl`.
 
 ```bash
 kubectl apply -f k8s/cluster/namespace.yaml
-kubectl apply -f k8s/rbac/deployer.yaml -f k8s/rbac/deployer-staging.yaml
+kubectl apply -f k8s/rbac/deployer.yaml -f k8s/rbac/deployer-preprod.yaml
 
 # Store each environment's kubeconfig without displaying it
 ./k8s/rbac/make-kubeconfig.sh https://<api-server>:6443 \
   | gh secret set PRD_KUBE_CONFIG --repo epitech-nice/PoolTracker
-NAMESPACE=pool-tracker-staging ./k8s/rbac/make-kubeconfig.sh https://<api-server>:6443 \
+NAMESPACE=pool-tracker-preprod ./k8s/rbac/make-kubeconfig.sh https://<api-server>:6443 \
   | gh secret set PPD_KUBE_CONFIG --repo epitech-nice/PoolTracker
 ```
 
@@ -67,7 +67,7 @@ kubectl auth can-i get secrets -n kube-system --as=$SA                         #
 
 ## GitHub settings
 
-Secrets and Variables are **repository-level**, prefixed with `PRD_` (production) or `PPD_` (staging): `PRD_JWT_SECRET`, `PPD_JWT_SECRET`... The deploy workflow receives the prefix from `build.yaml` and reads `secrets[<prefix>_<NAME>]`. The GitHub environments `production` and `staging` only record the deployments and their URL; they hold no secret.
+Secrets and Variables are **repository-level**, prefixed with `PRD_` (production) or `PPD_` (preprod): `PRD_JWT_SECRET`, `PPD_JWT_SECRET`... The deploy workflow receives the prefix from `build.yaml` and reads `secrets[<prefix>_<NAME>]`. The GitHub environments `production` and `preprod` only record the deployments and their URL; they hold no secret.
 
 Repository-level secrets are readable by every workflow of the repository, whatever the branch: changes to `.github/workflows/` deserve the same review as production access.
 
@@ -101,7 +101,7 @@ They become the ConfigMap `pool-tracker-app-config`. Constants (`NODE_ENV`, `DB_
 
 ## Deploying
 
-A push on `main` deploys production; a push on `develop` deploys staging. The flow is feature branch → pull request to `develop` (staging) → pull request to `main` (production).
+A push on `main` deploys production; a push on `develop` deploys preprod. The flow is feature branch → pull request to `develop` (preprod) → pull request to `main` (production).
 
 Deploy steps: connect with `<prefix>_KUBE_CONFIG`, check the account's rights, registry pull secret, settings, secrets, `kubectl apply -k` with the image tag set to the commit SHA, rollout of the database then the web pod, smoke tests on `<prefix>_PUBLIC_SITE_URL` (`/api/health`, `/`, `/api/auth/profile` = 401, HSTS header). On failure the job prints pods, logs and events.
 
@@ -114,7 +114,7 @@ Each container is restarted on its own if it dies.
 
 ### Several replicas
 
-Production runs **two web pods** (`replicas` in `k8s/production/kustomization.yaml`), staging one. This is safe because:
+Production runs **two web pods** (`replicas` in `k8s/production/kustomization.yaml`), preprod one. This is safe because:
 - schema migrations and the default rows run under a MySQL named lock: one pod migrates, the others wait;
 - the daily quest assignment runs under another lock and is recorded in `QUEST_CONFIG.lastAssignmentDate`, so it happens once a day whatever the number of pods or restarts.
 
@@ -127,7 +127,7 @@ Per pod: the login delay counters and the quest PDF cache.
 ## Operations
 
 ```bash
-N=pool-tracker-prod   # or pool-tracker-staging
+N=pool-tracker-prod   # or pool-tracker-preprod
 kubectl -n $N get deployments,pods,ingress,cronjobs,pvc
 kubectl -n $N logs -l app.kubernetes.io/component=web -c api -f     # -c web for nginx
 kubectl -n $N logs -l app.kubernetes.io/component=database --tail=100

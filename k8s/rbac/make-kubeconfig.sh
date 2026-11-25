@@ -6,7 +6,7 @@
 # Usage (with an admin kubeconfig, after applying deployer.yaml):
 #   ./k8s/rbac/make-kubeconfig.sh https://<api-server>:6443
 #   ./k8s/rbac/make-kubeconfig.sh https://<api-server>:6443 | gh secret set PRD_KUBE_CONFIG
-#   NAMESPACE=pool-tracker-staging ./k8s/rbac/make-kubeconfig.sh https://<api-server>:6443 \
+#   NAMESPACE=pool-tracker-preprod ./k8s/rbac/make-kubeconfig.sh https://<api-server>:6443 \
 #     | gh secret set PPD_KUBE_CONFIG
 #
 set -euo pipefail
