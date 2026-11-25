@@ -163,16 +163,14 @@ For complete database management documentation, see [documentation/DB-MANAGEMENT
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+The public repository [AlexandreDFM/PoolTracker](https://github.com/AlexandreDFM/PoolTracker) is a read-only archive of this project: issues and pull requests are not accepted there.
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
+## Credits
 
-- Epitech for inspiring this project
-- All contributors who have helped improve this system
+- Created by [@ItsKarmaOff](https://github.com/ItsKarmaOff) and [@toro-nicolas](https://github.com/toro-nicolas) (2025).
+- Taken over, deployed, fixed and maintained by [@AlexandreDFM](https://github.com/AlexandreDFM).
+- Thanks to [@moustiIIon](https://github.com/moustiIIon) for the June 2026 renewal: debugging, new ideas and using the platform at the time.
