@@ -69,7 +69,7 @@ exports.login = async (req, res) => {
         }
 
         // Check if the user exists
-        const user = await User.findByEmail(email);
+        const user = await User.findAuthByEmail(email);
         if (!user) {
             await User.verifyPassword(String(password || ''), DUMMY_HASH);
             loginGuard.recordFailure(guardKey);
@@ -129,7 +129,7 @@ exports.setPassword = async (req, res) => {
             return res.status(400).json({ message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
         }
 
-        const existingUser = await User.findById(payload.id);
+        const existingUser = await User.findAuthById(payload.id);
         if (!existingUser) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -152,7 +152,7 @@ exports.setPassword = async (req, res) => {
         const userId = existingUser.id;
 
         // Get the updated user
-        const user = await User.findById(userId);
+        const user = await User.findAuthById(userId);
 
         setSessionCookie(res, generateToken(user));
 
@@ -181,7 +181,7 @@ exports.changePassword = async (req, res) => {
             return res.status(400).json({ message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
         }
 
-        const user = await User.findById(req.user.id);
+        const user = await User.findAuthById(req.user.id);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -208,7 +208,7 @@ exports.changePassword = async (req, res) => {
         // Sessions opened before this change stop working; this one gets a new token
         await User.update(user.id, { password: newPassword });
         await User.revokeSessions(user.id);
-        const updatedUser = await User.findById(user.id);
+        const updatedUser = await User.findAuthById(user.id);
 
         setSessionCookie(res, generateToken(updatedUser));
         res.status(200).json({ message: 'Password changed successfully' });
@@ -228,7 +228,7 @@ exports.logout = (req, res) => {
 // token, already checked by authenticateJWT, is moved into the cookie
 exports.createSession = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id);
+        const user = await User.findAuthById(req.user.id);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }

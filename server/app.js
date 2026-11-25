@@ -22,7 +22,8 @@ const dotenv = require('dotenv');
 const { initDatabase, pool } = require('./config/database');
 
 // Load environment variables
-dotenv.config();
+// quiet: dotenv 17+ logs a line on every load by default
+dotenv.config({ quiet: true });
 
 // Initialize Express application
 const app = express();
@@ -42,6 +43,12 @@ app.use(helmet({
 
 // Middleware for parsing JSON (explicit default limit)
 app.use(express.json({ limit: '100kb' }));
+// Express 5 leaves req.body undefined when no body is parsed: keep the
+// controllers' destructuring (const { x } = req.body) safe
+app.use((req, res, next) => {
+    if (req.body === undefined) req.body = {};
+    next();
+});
 
 // CORS: the client is served from the same origin, so no cross-origin access
 // unless CORS_ORIGIN lists allowed origins (comma-separated)

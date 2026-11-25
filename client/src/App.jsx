@@ -17,7 +17,6 @@
 import './App.css';
 import AppRoutes from './Routes';
 import Header from './components/Header';
-import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';

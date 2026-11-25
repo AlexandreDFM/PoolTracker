@@ -18,11 +18,16 @@ const { pool } = require('../config/database');
 // const bcrypt = require('bcrypt');
 const bcrypt = require('bcryptjs');
 
+// Columns safe to return to clients: never the password hash or the session version
+const PUBLIC_COLUMNS = 'id, email, role, firstName, lastName, isFirstLogin, createdAt, updatedAt';
+// Authentication also needs the hash and the session version
+const AUTH_COLUMNS = `${PUBLIC_COLUMNS}, password, sessionVersion`;
+
 class User {
-    // Find a user by email
+    // Find a user by email (public columns)
     static async findByEmail(email) {
         try {
-            const [rows] = await pool.query('SELECT * FROM USERS WHERE email = ?', [email]);
+            const [rows] = await pool.query(`SELECT ${PUBLIC_COLUMNS} FROM USERS WHERE email = ?`, [email]);
             return rows[0];
         } catch (error) {
             console.error('\x1b[31mError finding user by email:\x1b[0m', error);
@@ -30,10 +35,32 @@ class User {
         }
     }
 
-    // Find a user by ID
+    // Find a user by ID (public columns)
     static async findById(id) {
         try {
-            const [rows] = await pool.query('SELECT * FROM USERS WHERE id = ?', [id]);
+            const [rows] = await pool.query(`SELECT ${PUBLIC_COLUMNS} FROM USERS WHERE id = ?`, [id]);
+            return rows[0];
+        } catch (error) {
+            console.error('\x1b[31mError finding user by ID:\x1b[0m', error);
+            throw error;
+        }
+    }
+
+    // Authentication only: includes the password hash and the session version
+    static async findAuthByEmail(email) {
+        try {
+            const [rows] = await pool.query(`SELECT ${AUTH_COLUMNS} FROM USERS WHERE email = ?`, [email]);
+            return rows[0];
+        } catch (error) {
+            console.error('\x1b[31mError finding user by email:\x1b[0m', error);
+            throw error;
+        }
+    }
+
+    // Authentication only: includes the password hash and the session version
+    static async findAuthById(id) {
+        try {
+            const [rows] = await pool.query(`SELECT ${AUTH_COLUMNS} FROM USERS WHERE id = ?`, [id]);
             return rows[0];
         } catch (error) {
             console.error('\x1b[31mError finding user by ID:\x1b[0m', error);
@@ -44,7 +71,7 @@ class User {
     // Get all users
     static async getAll() {
         try {
-            const [rows] = await pool.query('SELECT * FROM USERS ORDER BY role, email ASC, firstName ASC, lastName ASC');
+            const [rows] = await pool.query(`SELECT ${PUBLIC_COLUMNS} FROM USERS ORDER BY role, email ASC, firstName ASC, lastName ASC`);
             return rows;
         } catch (error) {
             console.error('\x1b[31mError retrieving all users:\x1b[0m', error);
@@ -56,7 +83,7 @@ class User {
     static async getAllByRole(role) {
         try {
             const [rows] = await pool.query(
-                'SELECT * FROM USERS WHERE role = ? ORDER BY firstName, lastName',
+                `SELECT ${PUBLIC_COLUMNS} FROM USERS WHERE role = ? ORDER BY firstName, lastName`,
                 [role]
             );
             return rows;

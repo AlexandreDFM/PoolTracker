@@ -175,9 +175,9 @@ This only happens when the database contains no admin account.
 
 ## Development
 
-### Installing development dependencies
+### Watch mode
 ```bash
-npm install --save-dev nodemon
+npm run dev   # node --watch: restarts on file changes, no extra dependency
 ```
 
 ### Contribution

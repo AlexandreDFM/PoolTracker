@@ -44,6 +44,7 @@ COPY docker/start.sh /app/start.sh
 RUN chmod +x /app/start.sh && \
     mkdir -p /var/log/nginx /var/lib/nginx && \
     chown -R node:node /var/log/nginx /var/lib/nginx
+# The root filesystem can be mounted read-only: only /tmp must be writable
 
 USER node
 
